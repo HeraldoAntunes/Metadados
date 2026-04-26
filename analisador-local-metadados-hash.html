@@ -1,0 +1,3730 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Analisador Local de Metadados e Hash de Arquivos</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --surface: #ffffff;
+      --surface-2: #edf2f7;
+      --text: #17202a;
+      --muted: #5d6d7e;
+      --line: #d8e1ea;
+      --primary: #2364aa;
+      --primary-dark: #184d83;
+      --focus: #7fb3ff;
+      --low: #227a4b;
+      --low-bg: #e7f6ee;
+      --medium: #8a6500;
+      --medium-bg: #fff3cd;
+      --high: #a73632;
+      --high-bg: #fdecea;
+      --info-bg: #eaf3ff;
+      --shadow: 0 16px 38px rgba(27, 38, 49, 0.08);
+      --radius: 8px;
+      --mono: "Consolas", "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--primary);
+      background: var(--primary);
+      color: #fff;
+      border-radius: 6px;
+      padding: 0.65rem 0.9rem;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--primary-dark);
+      border-color: var(--primary-dark);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      color: var(--primary);
+      background: #fff;
+    }
+
+    button.secondary:hover:not(:disabled) {
+      color: #fff;
+      background: var(--primary-dark);
+    }
+
+    button.ghost {
+      border-color: var(--line);
+      color: var(--text);
+      background: #fff;
+    }
+
+    input[type="search"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      padding: 0.65rem 0.75rem;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus,
+    button:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .app-header {
+      padding: 2.2rem 0 1.2rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+      gap: 1rem;
+      align-items: stretch;
+    }
+
+    .eyebrow {
+      margin: 0 0 0.35rem;
+      color: var(--primary);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      font-size: 0.78rem;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      max-width: 860px;
+      font-size: clamp(2rem, 4vw, 3.6rem);
+    }
+
+    h2 {
+      font-size: 1.3rem;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+    }
+
+    .lead {
+      max-width: 850px;
+      margin: 0.9rem 0 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .privacy-callout,
+    .notice,
+    .warning {
+      border: 1px solid var(--line);
+      border-left-width: 5px;
+      border-radius: var(--radius);
+      padding: 0.95rem 1rem;
+      background: var(--info-bg);
+    }
+
+    .privacy-callout {
+      border-left-color: var(--primary);
+      display: flex;
+      align-items: center;
+      font-weight: 700;
+    }
+
+    .warning {
+      background: var(--medium-bg);
+      border-left-color: #d49b00;
+      color: #5c4300;
+    }
+
+    .upload-panel,
+    .panel,
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .upload-panel {
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .dropzone {
+      border: 2px dashed #9db4ce;
+      border-radius: var(--radius);
+      padding: 2rem 1rem;
+      text-align: center;
+      background: #fbfdff;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .dropzone.dragover {
+      border-color: var(--primary);
+      background: #eef6ff;
+    }
+
+    .dropzone strong {
+      display: block;
+      font-size: 1.2rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .dropzone p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .upload-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      margin-top: 1rem;
+      align-items: center;
+    }
+
+    .progress-wrap {
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 12px;
+      background: var(--surface-2);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      background: var(--primary);
+      transition: width 0.2s ease;
+    }
+
+    .progress-text {
+      margin: 0.45rem 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .dashboard {
+      display: grid;
+      gap: 1rem;
+      padding-bottom: 2rem;
+    }
+
+    .pre-upload-note {
+      margin-bottom: 1rem;
+      border-left-color: var(--primary);
+      background: #f7fbff;
+    }
+
+    .tabs {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .tab-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0.45rem;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .tab-button {
+      border-color: transparent;
+      background: transparent;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .tab-button:hover:not(:disabled) {
+      color: var(--primary-dark);
+      background: #eef6ff;
+      border-color: #c8def5;
+    }
+
+    .tab-button[aria-selected="true"] {
+      color: #fff;
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .tab-panel {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .sensitive-grid,
+    .didactic-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .sensitive-card,
+    .explain-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1rem;
+      background: #fbfdff;
+    }
+
+    .sensitive-card h3,
+    .explain-card h3 {
+      margin-bottom: 0.45rem;
+    }
+
+    .sensitive-card .field-list {
+      display: grid;
+      gap: 0.65rem;
+      margin-top: 0.8rem;
+    }
+
+    .field-item {
+      border-top: 1px solid var(--line);
+      padding-top: 0.65rem;
+    }
+
+    .field-label {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      align-items: center;
+      font-weight: 800;
+    }
+
+    .field-value {
+      margin: 0.2rem 0;
+      overflow-wrap: anywhere;
+    }
+
+    .field-help {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .exposure-list {
+      margin: 0.7rem 0 0;
+      padding-left: 1.2rem;
+    }
+
+    .summary-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .toggle-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem 1rem;
+      align-items: center;
+      margin: 0.6rem 0 0;
+    }
+
+    .toggle-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .interpretation-list {
+      margin: 0.5rem 0 0;
+      padding-left: 1.2rem;
+    }
+
+    .hash-note {
+      margin: 0.25rem 0 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .card {
+      padding: 1rem;
+      box-shadow: none;
+    }
+
+    .card h3,
+    .panel h2 {
+      margin-bottom: 0.8rem;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: minmax(120px, 0.42fr) minmax(0, 1fr);
+      gap: 0.45rem 0.85rem;
+      margin: 0;
+    }
+
+    .kv dt {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .kv dd {
+      margin: 0;
+      word-break: break-word;
+    }
+
+    .mono {
+      font-family: var(--mono);
+      font-size: 0.9em;
+      overflow-wrap: anywhere;
+    }
+
+    .panel {
+      padding: 1rem;
+    }
+
+    .panel-header {
+      display: flex;
+      gap: 1rem;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.85rem;
+    }
+
+    .panel-header p {
+      margin: 0.25rem 0 0;
+      color: var(--muted);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      align-items: center;
+    }
+
+    .hash-list {
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .hash-row {
+      display: grid;
+      grid-template-columns: 90px minmax(0, 1fr) auto;
+      gap: 0.6rem;
+      align-items: center;
+      padding: 0.65rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fbfdff;
+    }
+
+    .hash-row strong {
+      color: var(--primary-dark);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.75rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .badge.low {
+      color: var(--low);
+      background: var(--low-bg);
+      border-color: #a9dec1;
+    }
+
+    .badge.medium {
+      color: var(--medium);
+      background: var(--medium-bg);
+      border-color: #efd174;
+    }
+
+    .badge.high {
+      color: var(--high);
+      background: var(--high-bg);
+      border-color: #f2b9b6;
+    }
+
+    .risk-box {
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      padding: 1rem;
+    }
+
+    .risk-box.low {
+      background: var(--low-bg);
+      border-color: #a9dec1;
+    }
+
+    .risk-box.medium {
+      background: var(--medium-bg);
+      border-color: #efd174;
+    }
+
+    .risk-box.high {
+      background: var(--high-bg);
+      border-color: #f2b9b6;
+    }
+
+    .risk-title {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      margin-bottom: 0.65rem;
+    }
+
+    .risk-box ul {
+      margin: 0.5rem 0 0;
+      padding-left: 1.2rem;
+    }
+
+    .table-tools {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto;
+      gap: 0.75rem;
+      margin-bottom: 0.8rem;
+      align-items: center;
+    }
+
+    .table-tools .toggle-row {
+      grid-column: 1 / -1;
+      margin-top: 0;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      max-height: 560px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 960px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 0.65rem 0.75rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #eef3f8;
+      color: #243447;
+      font-size: 0.88rem;
+    }
+
+    tr.sens-high td {
+      background: #fff7f6;
+    }
+
+    tr.sens-medium td {
+      background: #fffdf4;
+    }
+
+    .preview {
+      margin-top: 0.85rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #f9fbfd;
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .preview img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      display: block;
+      background: #fff;
+    }
+
+    .cleanup-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .tool-box {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1rem;
+      background: #fbfdff;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 120px;
+      gap: 0.65rem;
+      align-items: end;
+      margin: 0.75rem 0;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .technical-snippets {
+      margin-top: 0.8rem;
+    }
+
+    .technical-snippets textarea {
+      min-height: 220px;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      white-space: pre;
+    }
+
+    .footer {
+      border-top: 1px solid var(--line);
+      margin-top: 1rem;
+      padding: 1.5rem 0 2.5rem;
+      color: var(--muted);
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .footer h3 {
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+
+    .status-line {
+      min-height: 1.4rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 900px) {
+      .app-header,
+      .summary-grid,
+      .sensitive-grid,
+      .didactic-grid,
+      .cleanup-grid,
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hash-row {
+        grid-template-columns: 1fr;
+      }
+
+      .table-tools {
+        grid-template-columns: 1fr;
+      }
+
+      .panel-header {
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page {
+        width: min(100% - 20px, 1180px);
+      }
+
+      .kv {
+        grid-template-columns: 1fr;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Engenharia Ambiental e Sanitária</p>
+        <h1>Analisador Local de Metadados e Hash de Arquivos</h1>
+        <p class="lead">Aplicação didática para investigar privacidade digital, segurança da informação, assinaturas de arquivos, metadados e hashes criptográficos diretamente no navegador.</p>
+      </div>
+      <div class="privacy-callout">Nenhum arquivo é enviado para servidor. A análise ocorre localmente no navegador.</div>
+    </header>
+
+    <main>
+      <section class="notice pre-upload-note">
+        <strong>Arquivos digitais podem carregar informações invisíveis.</strong>
+        Esta ferramenta mostra dados que normalmente não aparecem quando abrimos o arquivo, mas que podem revelar autoria, datas, localização, software usado e outros rastros digitais.
+      </section>
+
+      <section class="upload-panel" aria-labelledby="uploadTitle">
+        <div id="dropzone" class="dropzone" tabindex="0">
+          <strong id="uploadTitle">Selecione ou arraste um arquivo</strong>
+          <p>Imagens, PDFs, documentos Office, arquivos de texto e arquivos genéricos são analisados localmente.</p>
+          <input id="fileInput" class="hidden" type="file">
+        </div>
+        <div class="upload-actions">
+          <button id="chooseFileButton" type="button">Selecionar arquivo</button>
+          <button id="clearButton" type="button" class="secondary" disabled>Limpar análise</button>
+          <span id="statusLine" class="status-line" aria-live="polite"></span>
+        </div>
+        <div id="progressWrap" class="progress-wrap" aria-live="polite">
+          <div class="progress-track" aria-hidden="true"><div id="progressBar" class="progress-bar"></div></div>
+          <p id="progressText" class="progress-text"></p>
+        </div>
+      </section>
+
+      <section id="dashboard" class="dashboard hidden" aria-live="polite">
+        <nav class="tabs" aria-label="Resultados da análise">
+          <div class="tab-list" role="tablist" aria-label="Níveis de leitura dos resultados">
+            <button id="tabButtonSummary" class="tab-button" type="button" role="tab" aria-selected="true" aria-controls="tabSummary" data-tab="summary">Resumo sensível</button>
+            <button id="tabButtonTechnical" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabTechnical" data-tab="technical">Dados técnicos completos</button>
+            <button id="tabButtonHashes" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabHashes" data-tab="hashes">Hashes e integridade</button>
+            <button id="tabButtonEducation" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabEducation" data-tab="education">Explicação didática</button>
+            <button id="tabButtonCleanup" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="tabCleanup" data-tab="cleanup">Remoção experimental</button>
+          </div>
+        </nav>
+
+        <section id="tabSummary" class="tab-panel" role="tabpanel" aria-labelledby="tabButtonSummary" data-tab-panel="summary">
+          <section class="panel" aria-labelledby="riskTitle">
+            <div class="panel-header">
+              <div>
+                <h2 id="riskTitle">Resumo sensível</h2>
+                <p>Leitura inicial para identificar rapidamente o que pode afetar privacidade, autoria e segurança.</p>
+              </div>
+              <div class="actions">
+                <button id="copySummaryButton" type="button" class="secondary">Copiar relatório resumido</button>
+                <button id="exportTxtButton" type="button" class="secondary">Exportar relatório didático em TXT</button>
+              </div>
+            </div>
+            <div class="toggle-row">
+              <label><input id="showAllSensitiveFields" type="checkbox"> Mostrar também campos não detectados</label>
+              <label><input id="presentationModeToggle" type="checkbox"> Modo apresentação: ocultar valores sensíveis</label>
+            </div>
+            <div id="riskBox"></div>
+            <div id="sensitiveSummary"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="basicContextTitle">
+            <div class="panel-header">
+              <div>
+                <h2 id="basicContextTitle">Contexto do arquivo</h2>
+                <p>Informações básicas e assinatura técnica usadas como ponto de partida da análise.</p>
+              </div>
+            </div>
+            <div id="summaryGrid" class="summary-grid"></div>
+          </section>
+        </section>
+
+        <section id="tabTechnical" class="tab-panel hidden" role="tabpanel" aria-labelledby="tabButtonTechnical" data-tab-panel="technical" tabindex="0">
+          <section class="panel" aria-labelledby="metadataTitle">
+            <div class="panel-header">
+              <div>
+                <h2 id="metadataTitle">Dados técnicos completos</h2>
+                <p>Todos os metadados extraídos continuam disponíveis. Valores inferidos aparecem com a origem marcada como inferida.</p>
+              </div>
+            </div>
+            <div class="table-tools">
+              <input id="metadataFilter" type="search" placeholder="Filtrar por categoria, campo, valor, origem, tipo ou sensibilidade">
+              <div class="actions">
+                <button id="copyMetadataButton" type="button" class="secondary">Copiar metadados</button>
+                <button id="copyAllButton" type="button" class="secondary">Copiar tudo</button>
+                <button id="exportJsonButton" type="button" class="secondary">Exportar JSON</button>
+                <button id="exportCsvButton" type="button" class="secondary">Exportar CSV</button>
+                <button id="toggleTechnicalButton" type="button" class="secondary" disabled>Mostrar trechos técnicos internos</button>
+              </div>
+              <div class="toggle-row">
+                <label><input id="includeTechnicalInReport" type="checkbox"> Incluir trechos técnicos no relatório completo</label>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Categoria</th>
+                    <th>Campo</th>
+                    <th>Valor</th>
+                    <th>Origem da informação</th>
+                    <th>Tipo de dado</th>
+                    <th>Nível de sensibilidade</th>
+                  </tr>
+                </thead>
+                <tbody id="metadataTableBody"></tbody>
+              </table>
+            </div>
+            <div id="technicalSnippets" class="technical-snippets hidden">
+              <div class="warning">
+                Atenção: esta área pode revelar conteúdo interno do documento, nomes, trechos de texto, comentários ou dados pessoais. Use apenas com arquivos de teste ou com autorização.
+              </div>
+              <label>
+                <span class="small">Trechos técnicos internos para fins didáticos</span>
+                <textarea id="technicalTextarea" readonly></textarea>
+              </label>
+            </div>
+          </section>
+        </section>
+
+        <section id="tabHashes" class="tab-panel hidden" role="tabpanel" aria-labelledby="tabButtonHashes" data-tab-panel="hashes" tabindex="0">
+          <section class="panel" aria-labelledby="hashTitle">
+            <div class="panel-header">
+              <div>
+                <h2 id="hashTitle">Hashes e integridade</h2>
+                <p>Hash é uma impressão digital matemática do conteúdo. Ele muda se qualquer byte do arquivo mudar.</p>
+              </div>
+              <div class="actions">
+                <button id="copyAllHashesButton" type="button" class="secondary">Copiar todos os hashes</button>
+              </div>
+            </div>
+            <div class="notice">
+              SHA-256 e SHA-512 são mais adequados para verificação moderna de integridade. SHA-1 é considerado fraco para aplicações criptográficas. MD5 é legado e não deve ser usado como segurança criptográfica moderna. MD5 e SHA-1 aparecem aqui para comparação didática ou compatibilidade com sistemas antigos. Hash não remove metadados, não criptografa o arquivo e não impede que o conteúdo seja lido por quem já tem acesso ao arquivo.
+            </div>
+            <div id="hashList" class="hash-list"></div>
+          </section>
+        </section>
+
+        <section id="tabEducation" class="tab-panel hidden" role="tabpanel" aria-labelledby="tabButtonEducation" data-tab-panel="education" tabindex="0">
+          <section class="panel" aria-labelledby="educationTitle">
+            <div class="panel-header">
+              <div>
+                <h2 id="educationTitle">Explicação didática</h2>
+                <p>Guia de leitura para interpretar os resultados em uma aula de segurança da informação e privacidade digital.</p>
+              </div>
+            </div>
+            <div id="educationalExplanation" class="didactic-grid"></div>
+          </section>
+        </section>
+
+        <section id="tabCleanup" class="tab-panel hidden" role="tabpanel" aria-labelledby="tabButtonCleanup" data-tab-panel="cleanup" tabindex="0">
+          <section class="panel" aria-labelledby="cleanupTitle">
+            <div class="panel-header">
+              <div>
+                <h2 id="cleanupTitle">Remoção experimental de metadados</h2>
+                <p>As rotinas abaixo priorizam demonstração didática e validação posterior em nova análise.</p>
+              </div>
+            </div>
+            <div class="cleanup-grid">
+              <div class="tool-box">
+                <h3>Imagens JPG/PNG</h3>
+                <p class="small">A imagem será regravada. Isso geralmente remove metadados EXIF/GPS, mas pode alterar compressão, tamanho e qualidade visual.</p>
+                <div class="form-row">
+                  <label>
+                    <span class="small">Formato de saída</span>
+                    <select id="cleanImageFormat">
+                      <option value="image/png">PNG</option>
+                      <option value="image/jpeg">JPEG</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span class="small">Qualidade JPEG</span>
+                    <input id="jpegQuality" type="number" min="0.1" max="1" step="0.05" value="0.92">
+                  </label>
+                </div>
+                <div class="actions">
+                  <button id="cleanImageButton" type="button">Gerar imagem limpa</button>
+                </div>
+                <p id="cleanImageStatus" class="status-line"></p>
+              </div>
+              <div class="tool-box">
+                <h3>PDF e Office</h3>
+                <p class="small">A remoção de metadados em documentos complexos não garante anonimização completa. Comentários, revisões, nomes internos, vínculos externos e conteúdo podem permanecer. O arquivo gerado deve ser analisado novamente neste aplicativo. O arquivo limpo experimental pode receber novas datas internas geradas no momento da limpeza.</p>
+                <div class="actions">
+                  <button id="cleanOfficeButton" type="button">Gerar Office limpo experimental</button>
+                </div>
+                <p id="cleanOfficeStatus" class="status-line"></p>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="panel" aria-labelledby="interpretTitle">
+          <div class="panel-header">
+            <div>
+              <h2 id="interpretTitle">Como interpretar este resultado</h2>
+              <p>Use estes termos para explicar a análise sem prometer mais do que a ferramenta consegue verificar.</p>
+            </div>
+          </div>
+          <ul class="interpretation-list">
+            <li><strong>Encontrado</strong> significa que o valor foi localizado diretamente no arquivo.</li>
+            <li><strong>Inferido</strong> significa que a aplicação deduziu a informação com base na estrutura do arquivo.</li>
+            <li><strong>Indício técnico</strong> significa que há sinal de uma estrutura, mas não necessariamente o dado final.</li>
+            <li><strong>Não detectado</strong> não significa ausência absoluta; significa apenas que a aplicação não encontrou esse dado pelos métodos usados.</li>
+            <li><strong>Limpeza experimental</strong> não deve ser tratada como anonimização garantida.</li>
+          </ul>
+        </section>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-grid">
+        <div>
+          <h3>Metadados</h3>
+          <p>São dados sobre o arquivo: autoria, software, datas internas, dimensões, comentários, coordenadas e outras marcas técnicas.</p>
+        </div>
+        <div>
+          <h3>Privacidade</h3>
+          <p>Metadados podem expor nomes, e-mails, localização GPS, caminhos de usuário, histórico de revisão e ferramentas usadas.</p>
+        </div>
+        <div>
+          <h3>Hash</h3>
+          <p>É uma impressão digital criptográfica do conteúdo. Ele ajuda a comparar integridade e identificar alterações byte a byte.</p>
+        </div>
+        <div>
+          <h3>Limpeza</h3>
+          <p>Remover metadados nem sempre é simples, especialmente em PDFs e documentos Office com objetos internos, revisões e vínculos.</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const $ = (selector) => document.querySelector(selector);
+      const els = {
+        fileInput: $("#fileInput"),
+        chooseFileButton: $("#chooseFileButton"),
+        clearButton: $("#clearButton"),
+        dropzone: $("#dropzone"),
+        dashboard: $("#dashboard"),
+        tabButtons: Array.from(document.querySelectorAll("[data-tab]")),
+        tabPanels: Array.from(document.querySelectorAll("[data-tab-panel]")),
+        summaryGrid: $("#summaryGrid"),
+        sensitiveSummary: $("#sensitiveSummary"),
+        statusLine: $("#statusLine"),
+        progressWrap: $("#progressWrap"),
+        progressBar: $("#progressBar"),
+        progressText: $("#progressText"),
+        hashList: $("#hashList"),
+        riskBox: $("#riskBox"),
+        metadataFilter: $("#metadataFilter"),
+        metadataTableBody: $("#metadataTableBody"),
+        copyMetadataButton: $("#copyMetadataButton"),
+        copyAllButton: $("#copyAllButton"),
+        copyAllHashesButton: $("#copyAllHashesButton"),
+        copySummaryButton: $("#copySummaryButton"),
+        exportTxtButton: $("#exportTxtButton"),
+        exportJsonButton: $("#exportJsonButton"),
+        exportCsvButton: $("#exportCsvButton"),
+        educationalExplanation: $("#educationalExplanation"),
+        showAllSensitiveFields: $("#showAllSensitiveFields"),
+        presentationModeToggle: $("#presentationModeToggle"),
+        includeTechnicalInReport: $("#includeTechnicalInReport"),
+        toggleTechnicalButton: $("#toggleTechnicalButton"),
+        technicalSnippets: $("#technicalSnippets"),
+        technicalTextarea: $("#technicalTextarea"),
+        cleanImageButton: $("#cleanImageButton"),
+        cleanImageFormat: $("#cleanImageFormat"),
+        jpegQuality: $("#jpegQuality"),
+        cleanImageStatus: $("#cleanImageStatus"),
+        cleanOfficeButton: $("#cleanOfficeButton"),
+        cleanOfficeStatus: $("#cleanOfficeStatus")
+      };
+
+      const state = {
+        file: null,
+        arrayBuffer: null,
+        bytes: null,
+        basic: null,
+        hashes: {},
+        metadata: [],
+        risk: null,
+        previewUrl: null,
+        imageInfo: null,
+        zip: null,
+        office: null,
+        technicalSnippets: [],
+        showTechnicalSnippets: false,
+        showAllSensitiveFields: false,
+        presentationMode: false,
+        includeTechnicalInReport: false,
+        activeTab: "summary",
+        currentFilter: ""
+      };
+
+      const textDecoderUtf8 = new TextDecoder("utf-8", { fatal: false });
+      const textDecoderLatin = new TextDecoder("windows-1252", { fatal: false });
+      const textEncoder = new TextEncoder();
+
+      const EXT_TEXT = new Set(["txt", "csv", "json", "xml", "html", "htm", "svg", "md", "log", "css", "js"]);
+      const EXT_IMAGE = new Set(["jpg", "jpeg", "png", "gif", "webp", "tif", "tiff", "bmp", "svg"]);
+      const EXT_OFFICE_ZIP = new Set(["docx", "xlsx", "pptx"]);
+      const EXT_OLD_OFFICE = new Set(["doc", "xls", "ppt"]);
+
+      els.chooseFileButton.addEventListener("click", () => els.fileInput.click());
+      els.fileInput.addEventListener("change", () => {
+        const file = els.fileInput.files && els.fileInput.files[0];
+        if (file) analyzeFile(file);
+      });
+      els.clearButton.addEventListener("click", clearAnalysis);
+      els.metadataFilter.addEventListener("input", () => {
+        state.currentFilter = els.metadataFilter.value.trim().toLowerCase();
+        renderMetadataTable();
+      });
+      els.copyMetadataButton.addEventListener("click", () => copyToClipboard(metadataAsText(), "Metadados copiados."));
+      els.copyAllButton.addEventListener("click", () => copyToClipboard(fullReportAsText(), "Relatório copiado."));
+      els.copyAllHashesButton.addEventListener("click", () => copyToClipboard(hashesAsText(), "Hashes copiados."));
+      els.copySummaryButton.addEventListener("click", copySummaryReport);
+      els.exportTxtButton.addEventListener("click", exportDidacticTXT);
+      els.exportJsonButton.addEventListener("click", exportJSON);
+      els.exportCsvButton.addEventListener("click", exportCSV);
+      els.showAllSensitiveFields.addEventListener("change", () => {
+        state.showAllSensitiveFields = els.showAllSensitiveFields.checked;
+        renderSensitiveSummary();
+      });
+      els.presentationModeToggle.addEventListener("change", () => {
+        state.presentationMode = els.presentationModeToggle.checked;
+        renderSensitiveSummary();
+      });
+      els.includeTechnicalInReport.addEventListener("change", () => {
+        state.includeTechnicalInReport = els.includeTechnicalInReport.checked;
+      });
+      els.toggleTechnicalButton.addEventListener("click", () => {
+        state.showTechnicalSnippets = !state.showTechnicalSnippets;
+        renderTechnicalSnippets();
+      });
+      els.cleanImageButton.addEventListener("click", cleanImageViaCanvas);
+      els.cleanOfficeButton.addEventListener("click", cleanOfficeMetadataExperimental);
+      els.tabButtons.forEach((button) => {
+        button.addEventListener("click", () => activateTab(button.dataset.tab));
+      });
+
+      ["dragenter", "dragover"].forEach((eventName) => {
+        els.dropzone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          els.dropzone.classList.add("dragover");
+        });
+      });
+      ["dragleave", "drop"].forEach((eventName) => {
+        els.dropzone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          els.dropzone.classList.remove("dragover");
+        });
+      });
+      els.dropzone.addEventListener("drop", (event) => {
+        const file = event.dataTransfer.files && event.dataTransfer.files[0];
+        if (file) analyzeFile(file);
+      });
+      els.dropzone.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          els.fileInput.click();
+        }
+      });
+
+      async function analyzeFile(file) {
+        resetStateForFile(file);
+        els.clearButton.disabled = false;
+        els.dashboard.classList.remove("hidden");
+        activateTab("summary");
+        updateProgress(3, "Preparando análise local...");
+
+        try {
+          if (file.size > 80 * 1024 * 1024) {
+            addMetadata("Aviso", "Arquivo grande", "Arquivos grandes podem deixar a análise mais lenta no navegador.", "Tamanho do arquivo", "médio");
+          }
+
+          state.arrayBuffer = await readFileAsArrayBuffer(file);
+          state.bytes = new Uint8Array(state.arrayBuffer);
+          updateProgress(18, "Lendo assinatura e informações básicas...");
+
+          state.basic = detectFileSignature(state.arrayBuffer, file);
+          addBasicMetadata(file, state.basic);
+          renderDashboard();
+          await nextFrame();
+
+          updateProgress(32, "Calculando hashes criptográficos...");
+          state.hashes = await calculateHashes(state.arrayBuffer);
+          renderDashboard();
+          await nextFrame();
+
+          updateProgress(52, "Extraindo metadados do tipo de arquivo...");
+          await parseByType(state.arrayBuffer, file, state.basic);
+          await nextFrame();
+
+          updateProgress(86, "Classificando sensibilidade...");
+          state.risk = classifySensitivity(state.metadata);
+          renderDashboard();
+
+          updateProgress(100, "Análise concluída.");
+          els.statusLine.textContent = `Arquivo analisado: ${file.name}`;
+        } catch (error) {
+          console.error(error);
+          addMetadata("Erro", "Falha na análise", error && error.message ? error.message : String(error), "Tratamento de exceção local", "médio");
+          state.risk = classifySensitivity(state.metadata);
+          renderDashboard();
+          updateProgress(100, "A análise terminou com erro parcial.");
+          els.statusLine.textContent = "Erro parcial. Verifique a tabela de metadados.";
+        }
+      }
+
+      function resetStateForFile(file) {
+        if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+        state.file = file;
+        state.arrayBuffer = null;
+        state.bytes = null;
+        state.basic = null;
+        state.hashes = {};
+        state.metadata = [];
+        state.risk = null;
+        state.previewUrl = null;
+        state.imageInfo = null;
+        state.zip = null;
+        state.office = null;
+        state.technicalSnippets = [];
+        state.showTechnicalSnippets = false;
+        state.showAllSensitiveFields = false;
+        state.presentationMode = false;
+        state.includeTechnicalInReport = false;
+        state.activeTab = "summary";
+        state.currentFilter = "";
+        els.metadataFilter.value = "";
+        els.showAllSensitiveFields.checked = false;
+        els.presentationModeToggle.checked = false;
+        els.includeTechnicalInReport.checked = false;
+        els.cleanImageStatus.textContent = "";
+        els.cleanOfficeStatus.textContent = "";
+      }
+
+      function clearAnalysis() {
+        if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+        state.file = null;
+        state.arrayBuffer = null;
+        state.bytes = null;
+        state.basic = null;
+        state.hashes = {};
+        state.metadata = [];
+        state.risk = null;
+        state.previewUrl = null;
+        state.imageInfo = null;
+        state.zip = null;
+        state.office = null;
+        state.technicalSnippets = [];
+        state.showTechnicalSnippets = false;
+        state.showAllSensitiveFields = false;
+        state.presentationMode = false;
+        state.includeTechnicalInReport = false;
+        state.activeTab = "summary";
+        els.dashboard.classList.add("hidden");
+        els.summaryGrid.innerHTML = "";
+        els.hashList.innerHTML = "";
+        els.riskBox.innerHTML = "";
+        els.metadataTableBody.innerHTML = "";
+        els.technicalSnippets.classList.add("hidden");
+        els.technicalTextarea.value = "";
+        els.toggleTechnicalButton.disabled = true;
+        els.toggleTechnicalButton.textContent = "Mostrar trechos técnicos internos";
+        els.showAllSensitiveFields.checked = false;
+        els.presentationModeToggle.checked = false;
+        els.includeTechnicalInReport.checked = false;
+        if (els.sensitiveSummary) els.sensitiveSummary.innerHTML = "";
+        activateTab("summary");
+        els.fileInput.value = "";
+        els.statusLine.textContent = "";
+        els.progressWrap.style.display = "none";
+        els.progressBar.style.width = "0%";
+        els.progressText.textContent = "";
+        els.clearButton.disabled = true;
+      }
+
+      function activateTab(tabName) {
+        state.activeTab = tabName || "summary";
+        els.tabButtons.forEach((button) => {
+          const active = button.dataset.tab === state.activeTab;
+          button.setAttribute("aria-selected", active ? "true" : "false");
+          button.tabIndex = active ? 0 : -1;
+        });
+        els.tabPanels.forEach((panel) => {
+          panel.classList.toggle("hidden", panel.dataset.tabPanel !== state.activeTab);
+        });
+      }
+
+      function updateProgress(percent, text) {
+        els.progressWrap.style.display = "block";
+        els.progressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+        els.progressText.textContent = text;
+      }
+
+      function nextFrame() {
+        return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+      }
+
+      function readFileAsArrayBuffer(file) {
+        return file.arrayBuffer();
+      }
+
+      function readFileAsText(file) {
+        return file.text();
+      }
+
+      function bytesToHex(bytes, limit = bytes.length) {
+        const max = Math.min(bytes.length, limit);
+        let out = "";
+        for (let i = 0; i < max; i++) out += bytes[i].toString(16).padStart(2, "0").toUpperCase();
+        return out.match(/.{1,2}/g)?.join(" ") || "";
+      }
+
+      function asciiPreview(bytes, limit = bytes.length) {
+        const max = Math.min(bytes.length, limit);
+        let out = "";
+        for (let i = 0; i < max; i++) out += bytes[i] >= 32 && bytes[i] <= 126 ? String.fromCharCode(bytes[i]) : ".";
+        return out;
+      }
+
+      function getExtension(name) {
+        const clean = String(name || "").split(/[\\/]/).pop();
+        const idx = clean.lastIndexOf(".");
+        return idx >= 0 ? clean.slice(idx + 1).toLowerCase() : "";
+      }
+
+      function formatBytes(bytes) {
+        const kb = bytes / 1024;
+        const mb = kb / 1024;
+        return `${bytes.toLocaleString("pt-BR")} bytes; ${kb.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} KB; ${mb.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} MB`;
+      }
+
+      function formatDate(value) {
+        if (!value) return "não informado";
+        return new Date(value).toLocaleString("pt-BR");
+      }
+
+      function detectFileSignature(arrayBuffer, file) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const header = bytes.subarray(0, Math.min(64, bytes.length));
+        const ext = getExtension(file.name);
+        const mime = file.type || "não informado pelo navegador";
+        const ascii = asciiPreview(header, header.length);
+        let probableType = "Arquivo genérico";
+        let family = "generic";
+        let expected = [];
+        let source = "assinatura mágica";
+
+        if (startsWith(bytes, [0xFF, 0xD8, 0xFF])) {
+          probableType = "JPEG";
+          family = "jpeg";
+          expected = ["jpg", "jpeg"];
+        } else if (startsWith(bytes, [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])) {
+          probableType = "PNG";
+          family = "png";
+          expected = ["png"];
+        } else if (ascii.startsWith("GIF87a") || ascii.startsWith("GIF89a")) {
+          probableType = "GIF";
+          family = "gif";
+          expected = ["gif"];
+        } else if (ascii.startsWith("BM")) {
+          probableType = "BMP";
+          family = "bmp";
+          expected = ["bmp"];
+        } else if (ascii.startsWith("RIFF") && ascii.slice(8, 12) === "WEBP") {
+          probableType = "WEBP";
+          family = "webp";
+          expected = ["webp"];
+        } else if (startsWith(bytes, [0x49, 0x49, 0x2A, 0x00]) || startsWith(bytes, [0x4D, 0x4D, 0x00, 0x2A])) {
+          probableType = "TIFF";
+          family = "tiff";
+          expected = ["tif", "tiff"];
+        } else if (ascii.startsWith("%PDF-")) {
+          probableType = "PDF";
+          family = "pdf";
+          expected = ["pdf"];
+        } else if (startsWith(bytes, [0x50, 0x4B, 0x03, 0x04]) || startsWith(bytes, [0x50, 0x4B, 0x05, 0x06]) || startsWith(bytes, [0x50, 0x4B, 0x07, 0x08])) {
+          probableType = EXT_OFFICE_ZIP.has(ext) ? "Pacote Office Open XML/ZIP" : "ZIP";
+          family = "zip";
+          expected = ["zip", "docx", "xlsx", "pptx", "ods", "odt", "odp", "jar"];
+        } else if (startsWith(bytes, [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1])) {
+          probableType = "Microsoft Office antigo/OLE CFB";
+          family = "ole";
+          expected = ["doc", "xls", "ppt", "msg", "vsd"];
+        } else {
+          const sample = decodeTextSample(bytes.subarray(0, Math.min(bytes.length, 4096))).trimStart();
+          if (/^<\?xml/i.test(sample) || /^<svg[\s>]/i.test(sample)) {
+            probableType = /^<svg[\s>]/i.test(sample) ? "SVG/XML" : "XML";
+            family = /^<svg[\s>]/i.test(sample) ? "svg" : "text";
+            expected = /^<svg[\s>]/i.test(sample) ? ["svg"] : ["xml"];
+            source = "conteúdo textual inferido";
+          } else if (/^<!doctype\s+html/i.test(sample) || /^<html[\s>]/i.test(sample)) {
+            probableType = "HTML";
+            family = "text";
+            expected = ["html", "htm"];
+            source = "conteúdo textual inferido";
+          } else if (/^[\[{]/.test(sample)) {
+            probableType = "JSON ou texto estruturado";
+            family = "text";
+            expected = ["json", "txt"];
+            source = "conteúdo textual inferido";
+          } else if (looksLikeText(bytes)) {
+            probableType = "Texto";
+            family = "text";
+            expected = ["txt", "csv", "json", "xml", "html", "htm", "svg", "md", "log"];
+            source = "conteúdo textual inferido";
+          }
+        }
+
+        const mismatch = ext && expected.length > 0 && !expected.includes(ext);
+        return {
+          extension: ext || "sem extensão",
+          mime,
+          headerHex: bytesToHex(header),
+          headerAscii: ascii,
+          probableType,
+          family,
+          expectedExtensions: expected,
+          mismatch,
+          source
+        };
+      }
+
+      function startsWith(bytes, signature) {
+        if (bytes.length < signature.length) return false;
+        for (let i = 0; i < signature.length; i++) if (bytes[i] !== signature[i]) return false;
+        return true;
+      }
+
+      function looksLikeText(bytes) {
+        const max = Math.min(bytes.length, 2048);
+        if (max === 0) return true;
+        let suspicious = 0;
+        for (let i = 0; i < max; i++) {
+          const b = bytes[i];
+          if (b === 0) return false;
+          if (b < 7 || (b > 14 && b < 32)) suspicious++;
+        }
+        return suspicious / max < 0.08;
+      }
+
+      function decodeTextSample(bytes) {
+        return textDecoderUtf8.decode(bytes);
+      }
+
+      function addBasicMetadata(file, basic) {
+        addMetadata("Arquivo", "Nome do arquivo", file.name, "File API do navegador", "baixo");
+        addMetadata("Arquivo", "Extensão", basic.extension, "Nome do arquivo", "baixo");
+        addMetadata("Arquivo", "Tipo MIME", basic.mime, "File API do navegador", "baixo");
+        addMetadata("Arquivo", "Tamanho", formatBytes(file.size), "File API do navegador", "baixo");
+        addMetadata("Arquivo", "Última modificação do arquivo no sistema", formatDate(file.lastModified), "File API do navegador", "baixo");
+        addMetadata("Assinatura", "Header hexadecimal", basic.headerHex || "não disponível", "Primeiros bytes do arquivo", "baixo");
+        addMetadata("Assinatura", "Tipo provável", basic.probableType, `${basic.source}${basic.source.includes("inferido") ? "" : " (inferido tecnicamente)"}`, "baixo");
+        if (basic.mismatch) {
+          addMetadata("Assinatura", "Alerta de extensão", `A extensão .${basic.extension} não combina com a assinatura provável (${basic.probableType}).`, "Comparação entre extensão e assinatura", "alto");
+        } else {
+          addMetadata("Assinatura", "Compatibilidade extensão/assinatura", "sem divergência evidente", "Comparação entre extensão e assinatura", "baixo");
+        }
+      }
+
+      async function calculateHashes(arrayBuffer) {
+        const result = {};
+        result["SHA-256"] = await digestHex("SHA-256", arrayBuffer);
+        result["SHA-1"] = await digestHex("SHA-1", arrayBuffer);
+        result["SHA-512"] = await digestHex("SHA-512", arrayBuffer);
+        result.MD5 = md5ArrayBuffer(arrayBuffer);
+        return result;
+      }
+
+      async function digestHex(algorithm, arrayBuffer) {
+        if (!window.crypto || !window.crypto.subtle) return "não disponível neste navegador";
+        try {
+          const digest = await window.crypto.subtle.digest(algorithm, arrayBuffer.slice(0));
+          return bytesToHex(new Uint8Array(digest)).replace(/\s+/g, "").toLowerCase();
+        } catch (error) {
+          return `não disponível: ${error.message}`;
+        }
+      }
+
+      // Implementação local de MD5 para fins didáticos. Não é biblioteca externa.
+      function md5ArrayBuffer(arrayBuffer) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const originalLength = bytes.length;
+        let paddedLength = originalLength + 1;
+        while (paddedLength % 64 !== 56) paddedLength++;
+        const data = new Uint8Array(paddedLength + 8);
+        data.set(bytes);
+        data[originalLength] = 0x80;
+        const bitLengthLow = (originalLength * 8) >>> 0;
+        const bitLengthHigh = Math.floor(originalLength / 0x20000000) >>> 0;
+        writeUint32LE(data, paddedLength, bitLengthLow);
+        writeUint32LE(data, paddedLength + 4, bitLengthHigh);
+
+        let a0 = 0x67452301;
+        let b0 = 0xefcdab89;
+        let c0 = 0x98badcfe;
+        let d0 = 0x10325476;
+        const s = [
+          7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+          5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
+          4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+          6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
+        ];
+        const k = Array.from({ length: 64 }, (_, i) => Math.floor(Math.abs(Math.sin(i + 1)) * 0x100000000) >>> 0);
+        const m = new Uint32Array(16);
+
+        for (let offset = 0; offset < data.length; offset += 64) {
+          for (let i = 0; i < 16; i++) {
+            m[i] = data[offset + i * 4] | (data[offset + i * 4 + 1] << 8) | (data[offset + i * 4 + 2] << 16) | (data[offset + i * 4 + 3] << 24);
+          }
+          let a = a0;
+          let b = b0;
+          let c = c0;
+          let d = d0;
+          for (let i = 0; i < 64; i++) {
+            let f;
+            let g;
+            if (i < 16) {
+              f = (b & c) | (~b & d);
+              g = i;
+            } else if (i < 32) {
+              f = (d & b) | (~d & c);
+              g = (5 * i + 1) % 16;
+            } else if (i < 48) {
+              f = b ^ c ^ d;
+              g = (3 * i + 5) % 16;
+            } else {
+              f = c ^ (b | ~d);
+              g = (7 * i) % 16;
+            }
+            const temp = d;
+            d = c;
+            c = b;
+            b = (b + leftRotate((a + f + k[i] + m[g]) >>> 0, s[i])) >>> 0;
+            a = temp;
+          }
+          a0 = (a0 + a) >>> 0;
+          b0 = (b0 + b) >>> 0;
+          c0 = (c0 + c) >>> 0;
+          d0 = (d0 + d) >>> 0;
+        }
+        return [a0, b0, c0, d0].map(wordToHexLE).join("");
+      }
+
+      function leftRotate(value, shift) {
+        return ((value << shift) | (value >>> (32 - shift))) >>> 0;
+      }
+
+      function writeUint32LE(bytes, offset, value) {
+        bytes[offset] = value & 0xff;
+        bytes[offset + 1] = (value >>> 8) & 0xff;
+        bytes[offset + 2] = (value >>> 16) & 0xff;
+        bytes[offset + 3] = (value >>> 24) & 0xff;
+      }
+
+      function wordToHexLE(value) {
+        return [value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, (value >>> 24) & 0xff]
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+      }
+
+      async function parseByType(arrayBuffer, file, basic) {
+        const ext = getExtension(file.name);
+        if (EXT_IMAGE.has(ext) || ["jpeg", "png", "gif", "webp", "bmp", "tiff", "svg"].includes(basic.family)) {
+          await parseImageMetadata(arrayBuffer, file, basic);
+        } else if (basic.family === "pdf" || ext === "pdf") {
+          parsePdfMetadata(arrayBuffer);
+        } else if (basic.family === "zip" || EXT_OFFICE_ZIP.has(ext)) {
+          await parseZipOfficeMetadata(arrayBuffer, file);
+        } else if (basic.family === "ole" || EXT_OLD_OFFICE.has(ext)) {
+          parseOldOfficeMetadata(arrayBuffer, file);
+        } else if (EXT_TEXT.has(ext) || basic.family === "text") {
+          await parseTextMetadata(await readFileAsText(file), file, arrayBuffer);
+        } else {
+          addMetadata("Formato", "Metadados específicos", "não suportado nesta versão", "Tipo de arquivo genérico", "baixo");
+        }
+      }
+
+      async function parseImageMetadata(arrayBuffer, file, basic) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const ext = getExtension(file.name);
+        if (["jpg", "jpeg"].includes(ext) || basic.family === "jpeg") {
+          await parseJpegExif(arrayBuffer);
+        } else if (ext === "png" || basic.family === "png") {
+          await parsePngChunks(arrayBuffer);
+        } else if (ext === "webp" || basic.family === "webp") {
+          parseWebpMetadata(arrayBuffer);
+        } else if (ext === "gif" || basic.family === "gif") {
+          parseGifMetadata(arrayBuffer);
+        } else if (ext === "svg" || basic.family === "svg") {
+          parseSvgMetadata(textDecoderUtf8.decode(bytes));
+        } else if (["tif", "tiff"].includes(ext) || basic.family === "tiff") {
+          parseTiffMetadata(new DataView(arrayBuffer), 0, "TIFF");
+        } else if (ext === "bmp" || basic.family === "bmp") {
+          parseBmpMetadata(arrayBuffer);
+        } else {
+          addMetadata("Imagem", "Metadados específicos", "não suportado nesta versão", "Tipo de imagem", "baixo");
+        }
+        setupImagePreview(file, basic);
+      }
+
+      function setupImagePreview(file, basic) {
+        if (!["jpeg", "png", "gif", "webp", "bmp"].includes(basic.family)) return;
+        state.previewUrl = URL.createObjectURL(file);
+      }
+
+      async function parseJpegExif(arrayBuffer) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const view = new DataView(arrayBuffer);
+        if (!startsWith(bytes, [0xff, 0xd8])) {
+          addMetadata("JPEG", "Estrutura", "assinatura JPEG não detectada", "Parser JPEG", "baixo");
+          return;
+        }
+        let offset = 2;
+        let foundExif = false;
+        let foundXmp = false;
+        let foundIptc = false;
+        let width = null;
+        let height = null;
+
+        while (offset + 4 <= bytes.length) {
+          if (bytes[offset] !== 0xff) break;
+          while (bytes[offset] === 0xff) offset++;
+          const marker = bytes[offset++];
+          if (marker === 0xda || marker === 0xd9) break;
+          if (marker >= 0xd0 && marker <= 0xd7) continue;
+          if (offset + 2 > bytes.length) break;
+          const length = view.getUint16(offset, false);
+          const segmentStart = offset + 2;
+          const segmentEnd = segmentStart + length - 2;
+          if (segmentEnd > bytes.length || length < 2) break;
+
+          if (isJpegSof(marker) && segmentStart + 7 <= segmentEnd) {
+            height = view.getUint16(segmentStart + 1, false);
+            width = view.getUint16(segmentStart + 3, false);
+            addImageDimensions(width, height, "JPEG SOF");
+          }
+
+          if (marker === 0xe1) {
+            if (matchesAsciiAt(bytes, segmentStart, "Exif\u0000\u0000")) {
+              foundExif = true;
+              parseTiffMetadata(new DataView(arrayBuffer), segmentStart + 6, "EXIF JPEG");
+            } else if (matchesAsciiAt(bytes, segmentStart, "http://ns.adobe.com/xap/1.0/\u0000")) {
+              foundXmp = true;
+              const xmpStart = segmentStart + "http://ns.adobe.com/xap/1.0/\u0000".length;
+              const xmp = textDecoderUtf8.decode(bytes.subarray(xmpStart, segmentEnd));
+              extractXmlMetadataFromString(xmp, "XMP JPEG APP1");
+            }
+          } else if (marker === 0xed) {
+            const iptcCount = parseIptc(bytes.subarray(segmentStart, segmentEnd), "IPTC JPEG APP13");
+            if (iptcCount > 0) foundIptc = true;
+          } else if (marker === 0xe0) {
+            const label = asciiPreview(bytes.subarray(segmentStart, Math.min(segmentStart + 20, segmentEnd)));
+            if (label.startsWith("JFIF")) addMetadata("JPEG", "Segmento JFIF", "presente", "APP0", "baixo");
+          } else if (marker === 0xee) {
+            const label = asciiPreview(bytes.subarray(segmentStart, Math.min(segmentStart + 20, segmentEnd)));
+            if (label.startsWith("Adobe")) addMetadata("JPEG", "Segmento Adobe", "presente", "APP14", "médio");
+          }
+          offset = segmentEnd;
+        }
+
+        if (!width || !height) addMetadata("Imagem", "Dimensões", "não detectado", "JPEG SOF", "baixo");
+        if (!foundExif) addMetadata("EXIF", "Estado", "não detectado", "JPEG APP1", "baixo");
+        if (!foundXmp) addMetadata("XMP", "Estado", "não detectado", "JPEG APP1", "baixo");
+        if (!foundIptc) addMetadata("IPTC", "Estado", "não detectado ou não suportado no arquivo", "JPEG APP13", "baixo");
+      }
+
+      function matchesAsciiAt(bytes, offset, text) {
+        if (offset + text.length > bytes.length) return false;
+        for (let i = 0; i < text.length; i++) {
+          if (bytes[offset + i] !== text.charCodeAt(i)) return false;
+        }
+        return true;
+      }
+
+      function isJpegSof(marker) {
+        return [0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker);
+      }
+
+      function addImageDimensions(width, height, source) {
+        if (!width || !height) return;
+        const mp = (width * height) / 1000000;
+        const ratio = reduceRatio(width, height);
+        state.imageInfo = { width, height, megapixels: mp, ratio };
+        addMetadata("Imagem", "Largura", `${width} px`, source, "baixo");
+        addMetadata("Imagem", "Altura", `${height} px`, source, "baixo");
+        addMetadata("Imagem", "Proporção", ratio, `${source} (inferido)`, "baixo");
+        addMetadata("Imagem", "Megapixels", mp.toLocaleString("pt-BR", { maximumFractionDigits: 2 }), `${source} (inferido)`, "baixo");
+      }
+
+      function reduceRatio(width, height) {
+        const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+        const d = gcd(width, height) || 1;
+        return `${width / d}:${height / d}`;
+      }
+
+      const TIFF_TAGS = {
+        0x0100: "ImageWidth",
+        0x0101: "ImageLength",
+        0x0102: "BitsPerSample",
+        0x0103: "Compression",
+        0x0106: "PhotometricInterpretation",
+        0x010e: "ImageDescription",
+        0x010f: "Make",
+        0x0110: "Model",
+        0x0112: "Orientation",
+        0x011a: "XResolution",
+        0x011b: "YResolution",
+        0x0128: "ResolutionUnit",
+        0x0131: "Software",
+        0x0132: "DateTime",
+        0x013b: "Artist",
+        0x8298: "Copyright",
+        0x8769: "ExifIFDPointer",
+        0x8825: "GPSInfoIFDPointer",
+        0xa005: "InteropIFDPointer"
+      };
+
+      const EXIF_TAGS = {
+        0x829a: "ExposureTime",
+        0x829d: "FNumber",
+        0x8822: "ExposureProgram",
+        0x8827: "ISOSpeedRatings",
+        0x8830: "SensitivityType",
+        0x9000: "ExifVersion",
+        0x9003: "DateTimeOriginal",
+        0x9004: "DateTimeDigitized",
+        0x9101: "ComponentsConfiguration",
+        0x9201: "ShutterSpeedValue",
+        0x9202: "ApertureValue",
+        0x9204: "ExposureBiasValue",
+        0x9207: "MeteringMode",
+        0x9208: "LightSource",
+        0x9209: "Flash",
+        0x920a: "FocalLength",
+        0x927c: "MakerNote",
+        0x9286: "UserComment",
+        0xa000: "FlashpixVersion",
+        0xa001: "ColorSpace",
+        0xa002: "PixelXDimension",
+        0xa003: "PixelYDimension",
+        0xa20e: "FocalPlaneXResolution",
+        0xa20f: "FocalPlaneYResolution",
+        0xa210: "FocalPlaneResolutionUnit",
+        0xa405: "FocalLengthIn35mmFilm",
+        0xa430: "CameraOwnerName",
+        0xa431: "BodySerialNumber",
+        0xa432: "LensSpecification",
+        0xa433: "LensMake",
+        0xa434: "LensModel",
+        0xa435: "LensSerialNumber"
+      };
+
+      const GPS_TAGS = {
+        0x0000: "GPSVersionID",
+        0x0001: "GPSLatitudeRef",
+        0x0002: "GPSLatitude",
+        0x0003: "GPSLongitudeRef",
+        0x0004: "GPSLongitude",
+        0x0005: "GPSAltitudeRef",
+        0x0006: "GPSAltitude",
+        0x0007: "GPSTimeStamp",
+        0x0012: "GPSMapDatum",
+        0x001d: "GPSDateStamp",
+        0x001f: "GPSHPositioningError"
+      };
+
+      function parseTiffMetadata(view, tiffOffset, source) {
+        try {
+          if (tiffOffset + 8 > view.byteLength) throw new Error("TIFF incompleto");
+          const byteOrder = String.fromCharCode(view.getUint8(tiffOffset), view.getUint8(tiffOffset + 1));
+          const little = byteOrder === "II";
+          if (!little && byteOrder !== "MM") throw new Error("ordem de bytes TIFF inválida");
+          const magic = view.getUint16(tiffOffset + 2, little);
+          if (magic !== 42) throw new Error("assinatura TIFF inválida");
+          const firstIfd = view.getUint32(tiffOffset + 4, little);
+          const visited = new Set();
+          const gps = {};
+          const dimensions = {};
+
+          const parseIfd = (relativeOffset, ifdName, depth) => {
+            if (!relativeOffset || depth > 4) return;
+            const absoluteOffset = tiffOffset + relativeOffset;
+            if (absoluteOffset < 0 || absoluteOffset + 2 > view.byteLength || visited.has(absoluteOffset)) return;
+            visited.add(absoluteOffset);
+            const count = view.getUint16(absoluteOffset, little);
+            if (count > 2048) return;
+            for (let i = 0; i < count; i++) {
+              const entryOffset = absoluteOffset + 2 + i * 12;
+              if (entryOffset + 12 > view.byteLength) break;
+              const tag = view.getUint16(entryOffset, little);
+              const type = view.getUint16(entryOffset + 2, little);
+              const valueCount = view.getUint32(entryOffset + 4, little);
+              const value = readTiffValue(view, tiffOffset, entryOffset, little);
+              const tagName = getTiffTagName(tag, ifdName);
+              const category = ifdName === "GPS" ? "GPS" : ifdName === "EXIF" ? "EXIF" : "Imagem EXIF/TIFF";
+              if (tag === 0x8769 && Number.isFinite(value)) {
+                addMetadata(category, tagName, value, `${source}: ponteiro para IFD EXIF`, "baixo");
+                parseIfd(value, "EXIF", depth + 1);
+                continue;
+              }
+              if (tag === 0x8825 && Number.isFinite(value)) {
+                addMetadata(category, tagName, value, `${source}: ponteiro para IFD GPS`, "baixo");
+                parseIfd(value, "GPS", depth + 1);
+                continue;
+              }
+              if (tag === 0xa005 && Number.isFinite(value)) {
+                addMetadata(category, tagName, value, `${source}: ponteiro para IFD Interop`, "baixo");
+                parseIfd(value, "Interop", depth + 1);
+                continue;
+              }
+
+              const printable = formatTiffValue(value, type, valueCount);
+              const sensitivity = sensitivityForField(category, tagName, printable);
+              addMetadata(category, tagName, printable, source, sensitivity);
+
+              if (tagName === "ImageWidth" || tagName === "PixelXDimension") dimensions.width = numericFirst(value);
+              if (tagName === "ImageLength" || tagName === "PixelYDimension") dimensions.height = numericFirst(value);
+              if (ifdName === "GPS") gps[tagName] = value;
+            }
+            const nextOffsetPosition = absoluteOffset + 2 + count * 12;
+            if (nextOffsetPosition + 4 <= view.byteLength && ifdName === "IFD0") {
+              const next = view.getUint32(nextOffsetPosition, little);
+              if (next) parseIfd(next, "IFD1", depth + 1);
+            }
+          };
+
+          parseIfd(firstIfd, "IFD0", 0);
+          if (dimensions.width && dimensions.height) addImageDimensions(dimensions.width, dimensions.height, source);
+          const lat = dmsToDecimal(gps.GPSLatitude, gps.GPSLatitudeRef);
+          const lon = dmsToDecimal(gps.GPSLongitude, gps.GPSLongitudeRef);
+          if (lat !== null && lon !== null) {
+            addMetadata("GPS", "Latitude decimal", lat.toFixed(7), `${source} (convertido de DMS)`, "alto");
+            addMetadata("GPS", "Longitude decimal", lon.toFixed(7), `${source} (convertido de DMS)`, "alto");
+          }
+        } catch (error) {
+          addMetadata("EXIF/TIFF", "Erro de leitura", error.message, source, "baixo");
+        }
+      }
+
+      function getTiffTagName(tag, ifdName) {
+        if (ifdName === "GPS") return GPS_TAGS[tag] || `Tag GPS 0x${tag.toString(16).padStart(4, "0")}`;
+        if (ifdName === "EXIF") return EXIF_TAGS[tag] || TIFF_TAGS[tag] || `Tag EXIF 0x${tag.toString(16).padStart(4, "0")}`;
+        return TIFF_TAGS[tag] || EXIF_TAGS[tag] || `Tag TIFF 0x${tag.toString(16).padStart(4, "0")}`;
+      }
+
+      function readTiffValue(view, tiffOffset, entryOffset, little) {
+        const type = view.getUint16(entryOffset + 2, little);
+        const count = view.getUint32(entryOffset + 4, little);
+        const typeSizes = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 7: 1, 9: 4, 10: 8 };
+        const size = typeSizes[type] || 1;
+        const totalSize = size * count;
+        const inlineOffset = entryOffset + 8;
+        const valueOffset = totalSize <= 4 ? inlineOffset : tiffOffset + view.getUint32(inlineOffset, little);
+        if (valueOffset < 0 || valueOffset + totalSize > view.byteLength || count > 200000) return "valor fora do arquivo";
+        const values = [];
+        for (let i = 0; i < count; i++) {
+          const o = valueOffset + i * size;
+          if (type === 1 || type === 7) values.push(view.getUint8(o));
+          else if (type === 2) {
+            const bytes = new Uint8Array(view.buffer, view.byteOffset + valueOffset, totalSize);
+            return textDecoderLatin.decode(bytes).replace(/\0+$/g, "").trim();
+          } else if (type === 3) values.push(view.getUint16(o, little));
+          else if (type === 4) values.push(view.getUint32(o, little));
+          else if (type === 5) {
+            const numerator = view.getUint32(o, little);
+            const denominator = view.getUint32(o + 4, little);
+            values.push({ numerator, denominator, value: denominator ? numerator / denominator : null });
+          } else if (type === 9) values.push(view.getInt32(o, little));
+          else if (type === 10) {
+            const numerator = view.getInt32(o, little);
+            const denominator = view.getInt32(o + 4, little);
+            values.push({ numerator, denominator, value: denominator ? numerator / denominator : null });
+          }
+        }
+        return values.length === 1 ? values[0] : values;
+      }
+
+      function formatTiffValue(value, type, count) {
+        if (Array.isArray(value)) {
+          if ((type === 1 || type === 7) && value.length > 12) {
+            const printable = value.every((b) => b === 0 || (b >= 32 && b <= 126));
+            if (printable) return String.fromCharCode(...value).replace(/\0+$/g, "").trim();
+            return bytesToHex(Uint8Array.from(value), 32) + (value.length > 32 ? " ..." : "");
+          }
+          return value.map((item) => formatTiffValue(item, type, count)).join("; ");
+        }
+        if (value && typeof value === "object" && "numerator" in value) {
+          const decimal = value.value === null ? "indefinido" : Number(value.value).toLocaleString("pt-BR", { maximumFractionDigits: 6 });
+          return `${value.numerator}/${value.denominator} (${decimal})`;
+        }
+        if (value === "") return "não detectado";
+        return String(value);
+      }
+
+      function numericFirst(value) {
+        if (Array.isArray(value)) return numericFirst(value[0]);
+        if (value && typeof value === "object" && "value" in value) return value.value;
+        return Number.isFinite(value) ? value : null;
+      }
+
+      function dmsToDecimal(dms, ref) {
+        if (!Array.isArray(dms) || dms.length < 3) return null;
+        const values = dms.map((item) => numericFirst(item));
+        if (values.some((v) => !Number.isFinite(v))) return null;
+        let decimal = values[0] + values[1] / 60 + values[2] / 3600;
+        const direction = Array.isArray(ref) ? String(ref[0]) : String(ref || "");
+        if (/^[SW]/i.test(direction)) decimal *= -1;
+        return decimal;
+      }
+
+      function parseIptc(segmentBytes, source) {
+        let count = 0;
+        const IPTC_TAGS = {
+          5: "ObjectName",
+          25: "Keywords",
+          55: "DateCreated",
+          60: "TimeCreated",
+          80: "Byline",
+          85: "BylineTitle",
+          90: "City",
+          95: "ProvinceState",
+          101: "Country",
+          105: "Headline",
+          110: "Credit",
+          115: "Source",
+          116: "CopyrightNotice",
+          120: "CaptionAbstract",
+          122: "WriterEditor"
+        };
+        for (let i = 0; i + 5 < segmentBytes.length; i++) {
+          if (segmentBytes[i] === 0x1c && segmentBytes[i + 1] === 0x02) {
+            const tag = segmentBytes[i + 2];
+            const len = (segmentBytes[i + 3] << 8) | segmentBytes[i + 4];
+            const start = i + 5;
+            const end = start + len;
+            if (end <= segmentBytes.length) {
+              const field = IPTC_TAGS[tag] || `IPTC 2:${tag}`;
+              const value = textDecoderLatin.decode(segmentBytes.subarray(start, end)).trim();
+              if (value) {
+                addMetadata("IPTC", field, value, source, sensitivityForField("IPTC", field, value));
+                count++;
+              }
+              i = end - 1;
+            }
+          }
+        }
+        return count;
+      }
+
+      async function parsePngChunks(arrayBuffer) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const view = new DataView(arrayBuffer);
+        if (!startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return;
+        let offset = 8;
+        const chunks = [];
+        while (offset + 12 <= bytes.length) {
+          const length = view.getUint32(offset, false);
+          const type = asciiPreview(bytes.subarray(offset + 4, offset + 8));
+          const dataStart = offset + 8;
+          const dataEnd = dataStart + length;
+          if (dataEnd + 4 > bytes.length) break;
+          chunks.push(type);
+          addMetadata("PNG", "Chunk encontrado", `${type} (${length} bytes)`, "Estrutura PNG", "baixo");
+
+          if (type === "IHDR" && length >= 13) {
+            const width = view.getUint32(dataStart, false);
+            const height = view.getUint32(dataStart + 4, false);
+            addImageDimensions(width, height, "PNG IHDR");
+            addMetadata("PNG", "Profundidade de bits", bytes[dataStart + 8], "PNG IHDR", "baixo");
+            addMetadata("PNG", "Tipo de cor", bytes[dataStart + 9], "PNG IHDR", "baixo");
+          } else if (type === "tEXt") {
+            const zero = bytes.indexOf(0, dataStart);
+            if (zero >= dataStart && zero < dataEnd) {
+              const key = textDecoderLatin.decode(bytes.subarray(dataStart, zero));
+              const value = textDecoderLatin.decode(bytes.subarray(zero + 1, dataEnd));
+              addMetadata("PNG tEXt", key, value, "Chunk tEXt", sensitivityForField("PNG tEXt", key, value));
+              if (/xmp/i.test(key)) extractXmlMetadataFromString(value, "PNG tEXt/XMP");
+            }
+          } else if (type === "zTXt") {
+            const zero = bytes.indexOf(0, dataStart);
+            if (zero >= dataStart && zero + 2 < dataEnd) {
+              const key = textDecoderLatin.decode(bytes.subarray(dataStart, zero));
+              try {
+                const valueBytes = inflateZlibSync(bytes.subarray(zero + 2, dataEnd));
+                const value = textDecoderLatin.decode(valueBytes);
+                addMetadata("PNG zTXt", key, value, "Chunk zTXt descomprimido localmente", sensitivityForField("PNG zTXt", key, value));
+                if (/xmp/i.test(key)) extractXmlMetadataFromString(value, "PNG zTXt/XMP");
+              } catch (error) {
+                addMetadata("PNG zTXt", key, `não foi possível descomprimir: ${error.message}`, "Chunk zTXt", "baixo");
+              }
+            }
+          } else if (type === "iTXt") {
+            parsePngITXt(bytes.subarray(dataStart, dataEnd));
+          } else if (type === "pHYs" && length >= 9) {
+            const x = view.getUint32(dataStart, false);
+            const y = view.getUint32(dataStart + 4, false);
+            const unit = bytes[dataStart + 8] === 1 ? "metro" : "unidade desconhecida";
+            addMetadata("PNG pHYs", "Densidade X", `${x} pixels por ${unit}`, "Chunk pHYs", "baixo");
+            addMetadata("PNG pHYs", "Densidade Y", `${y} pixels por ${unit}`, "Chunk pHYs", "baixo");
+          } else if (type === "tIME" && length >= 7) {
+            const date = `${view.getUint16(dataStart, false)}-${String(bytes[dataStart + 2]).padStart(2, "0")}-${String(bytes[dataStart + 3]).padStart(2, "0")} ${String(bytes[dataStart + 4]).padStart(2, "0")}:${String(bytes[dataStart + 5]).padStart(2, "0")}:${String(bytes[dataStart + 6]).padStart(2, "0")} UTC`;
+            addMetadata("PNG tIME", "Última modificação", date, "Chunk tIME", "médio");
+          } else if (type === "eXIf") {
+            parseTiffMetadata(new DataView(arrayBuffer), dataStart, "PNG eXIf");
+          }
+          offset = dataEnd + 4;
+          if (type === "IEND") break;
+        }
+        addMetadata("PNG", "Sequência de chunks", chunks.join(", "), "Estrutura PNG", "baixo");
+      }
+
+      function parsePngITXt(data) {
+        let cursor = 0;
+        const readNull = () => {
+          const start = cursor;
+          while (cursor < data.length && data[cursor] !== 0) cursor++;
+          const value = data.subarray(start, cursor);
+          cursor++;
+          return value;
+        };
+        try {
+          const keyword = textDecoderLatin.decode(readNull());
+          const compressionFlag = data[cursor++];
+          cursor++;
+          const language = textDecoderLatin.decode(readNull());
+          const translatedKeyword = textDecoderUtf8.decode(readNull());
+          const raw = data.subarray(cursor);
+          let textBytes = raw;
+          let origin = "Chunk iTXt";
+          if (compressionFlag === 1) {
+            textBytes = inflateZlibSync(raw);
+            origin = "Chunk iTXt descomprimido localmente";
+          }
+          const value = textDecoderUtf8.decode(textBytes);
+          addMetadata("PNG iTXt", keyword, value, origin, sensitivityForField("PNG iTXt", keyword, value));
+          if (language) addMetadata("PNG iTXt", `${keyword}: idioma`, language, "Chunk iTXt", "baixo");
+          if (translatedKeyword) addMetadata("PNG iTXt", `${keyword}: palavra traduzida`, translatedKeyword, "Chunk iTXt", "baixo");
+          if (/xmp|xml/i.test(keyword + value)) extractXmlMetadataFromString(value, "PNG iTXt/XMP");
+        } catch (error) {
+          addMetadata("PNG iTXt", "Erro de leitura", error.message, "Chunk iTXt", "baixo");
+        }
+      }
+
+      function parseWebpMetadata(arrayBuffer) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const view = new DataView(arrayBuffer);
+        if (asciiPreview(bytes.subarray(0, 4)) !== "RIFF" || asciiPreview(bytes.subarray(8, 12)) !== "WEBP") return;
+        let offset = 12;
+        const chunks = [];
+        while (offset + 8 <= bytes.length) {
+          const type = asciiPreview(bytes.subarray(offset, offset + 4));
+          const length = view.getUint32(offset + 4, true);
+          const dataStart = offset + 8;
+          const dataEnd = dataStart + length;
+          if (dataEnd > bytes.length) break;
+          chunks.push(type);
+          addMetadata("WEBP", "Chunk encontrado", `${type} (${length} bytes)`, "Estrutura RIFF/WEBP", "baixo");
+          if (type === "VP8X" && length >= 10) {
+            const width = 1 + bytes[dataStart + 4] + (bytes[dataStart + 5] << 8) + (bytes[dataStart + 6] << 16);
+            const height = 1 + bytes[dataStart + 7] + (bytes[dataStart + 8] << 8) + (bytes[dataStart + 9] << 16);
+            addImageDimensions(width, height, "WEBP VP8X");
+            if (bytes[dataStart] & 0x08) addMetadata("WEBP", "Metadados XMP", "indicados no cabeçalho VP8X", "WEBP VP8X", "médio");
+            if (bytes[dataStart] & 0x10) addMetadata("WEBP", "Metadados EXIF", "indicados no cabeçalho VP8X", "WEBP VP8X", "médio");
+          } else if (type === "VP8L" && length >= 5) {
+            const b0 = bytes[dataStart + 1], b1 = bytes[dataStart + 2], b2 = bytes[dataStart + 3], b3 = bytes[dataStart + 4];
+            const width = 1 + (((b1 & 0x3f) << 8) | b0);
+            const height = 1 + (((b3 & 0x0f) << 10) | (b2 << 2) | ((b1 & 0xc0) >> 6));
+            addImageDimensions(width, height, "WEBP VP8L");
+          } else if (type === "VP8 " && length >= 10) {
+            for (let i = dataStart; i + 9 < dataEnd; i++) {
+              if (bytes[i + 3] === 0x9d && bytes[i + 4] === 0x01 && bytes[i + 5] === 0x2a) {
+                const width = view.getUint16(i + 6, true) & 0x3fff;
+                const height = view.getUint16(i + 8, true) & 0x3fff;
+                addImageDimensions(width, height, "WEBP VP8");
+                break;
+              }
+            }
+          } else if (type === "EXIF") {
+            parseTiffMetadata(new DataView(arrayBuffer), dataStart, "WEBP EXIF");
+          } else if (type === "XMP ") {
+            const xmp = textDecoderUtf8.decode(bytes.subarray(dataStart, dataEnd));
+            extractXmlMetadataFromString(xmp, "WEBP XMP");
+          }
+          offset = dataEnd + (length % 2);
+        }
+        addMetadata("WEBP", "Sequência de chunks", chunks.join(", "), "Estrutura RIFF/WEBP", "baixo");
+      }
+
+      function parseGifMetadata(arrayBuffer) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const view = new DataView(arrayBuffer);
+        const header = asciiPreview(bytes.subarray(0, 6));
+        if (!["GIF87a", "GIF89a"].includes(header)) return;
+        const width = view.getUint16(6, true);
+        const height = view.getUint16(8, true);
+        addImageDimensions(width, height, "GIF Logical Screen Descriptor");
+        addMetadata("GIF", "Versão", header, "Cabeçalho GIF", "baixo");
+        let offset = 13;
+        if (bytes[10] & 0x80) offset += 3 * (1 << ((bytes[10] & 0x07) + 1));
+        let frames = 0;
+        let comments = 0;
+        while (offset < bytes.length) {
+          const block = bytes[offset++];
+          if (block === 0x2c) {
+            frames++;
+            offset += 8;
+            const packed = bytes[offset++];
+            if (packed & 0x80) offset += 3 * (1 << ((packed & 0x07) + 1));
+            offset++;
+            while (offset < bytes.length) {
+              const size = bytes[offset++];
+              if (size === 0) break;
+              offset += size;
+            }
+          } else if (block === 0x21) {
+            const label = bytes[offset++];
+            const parts = [];
+            while (offset < bytes.length) {
+              const size = bytes[offset++];
+              if (size === 0) break;
+              const part = bytes.subarray(offset, offset + size);
+              if (label === 0xfe) parts.push(textDecoderLatin.decode(part));
+              offset += size;
+            }
+            if (label === 0xfe && parts.length) {
+              comments++;
+              const value = parts.join("");
+              addMetadata("GIF", "Comentário", value, "Extension block 0xFE", sensitivityForField("GIF", "Comentário", value));
+            }
+          } else if (block === 0x3b) {
+            break;
+          } else {
+            break;
+          }
+        }
+        addMetadata("GIF", "Quantidade aproximada de frames", frames || "não detectado", "Varredura de Image Descriptors", "baixo");
+        if (!comments) addMetadata("GIF", "Comentários", "não detectado", "Extension block 0xFE", "baixo");
+      }
+
+      function parseBmpMetadata(arrayBuffer) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const view = new DataView(arrayBuffer);
+        if (asciiPreview(bytes.subarray(0, 2)) !== "BM" || bytes.length < 26) return;
+        const dibSize = view.getUint32(14, true);
+        const width = view.getInt32(18, true);
+        const height = Math.abs(view.getInt32(22, true));
+        addImageDimensions(width, height, "BMP DIB Header");
+        addMetadata("BMP", "Tamanho do cabeçalho DIB", dibSize, "BMP DIB Header", "baixo");
+        if (bytes.length >= 30) addMetadata("BMP", "Profundidade de cor", `${view.getUint16(28, true)} bits`, "BMP DIB Header", "baixo");
+      }
+
+      function parseSvgMetadata(text) {
+        const doc = parseXmlDocument(text, "image/svg+xml");
+        const root = doc && doc.documentElement;
+        if (root) {
+          ["width", "height", "viewBox", "version"].forEach((attr) => {
+            if (root.getAttribute(attr)) addMetadata("SVG", attr, root.getAttribute(attr), "Elemento svg", "baixo");
+          });
+          getElementsByLocalName(doc, "title").forEach((el, index) => addMetadata("SVG", `title ${index + 1}`, cleanText(el.textContent), "Elemento title", "médio"));
+          getElementsByLocalName(doc, "desc").forEach((el, index) => addMetadata("SVG", `description ${index + 1}`, cleanText(el.textContent), "Elemento desc", "médio"));
+          getElementsByLocalName(doc, "metadata").forEach((el, index) => {
+            const value = cleanText(el.textContent).slice(0, 3000);
+            addMetadata("SVG", `metadata ${index + 1}`, value || "presente sem texto direto", "Elemento metadata", sensitivityForField("SVG", "metadata", value));
+          });
+          ["creator", "editor", "author"].forEach((name) => {
+            getElementsByLocalName(doc, name).forEach((el) => addMetadata("SVG", name, cleanText(el.textContent), "Elemento de metadado SVG/XML", "alto"));
+          });
+        }
+        const comments = [...text.matchAll(/<!--([\s\S]*?)-->/g)].map((m) => cleanText(m[1])).filter(Boolean);
+        comments.forEach((comment, index) => addMetadata("SVG", `Comentário ${index + 1}`, comment.slice(0, 1000), "Comentário XML", sensitivityForField("SVG", "Comentário", comment)));
+        const scripts = (text.match(/<script\b/gi) || []).length;
+        if (scripts) addMetadata("SVG", "Scripts embutidos", `${scripts} ocorrência(s)`, "Busca textual por elemento script", "alto");
+        const links = extractExternalLinks(text);
+        links.forEach((link, index) => addMetadata("SVG", `Link externo ${index + 1}`, link, "Atributos href/src inferidos por regex", "alto"));
+        if (!scripts) addMetadata("SVG", "Scripts embutidos", "não detectado", "Busca textual por elemento script", "baixo");
+        if (!links.length) addMetadata("SVG", "Links externos", "não detectado", "Busca textual por href/src", "baixo");
+        pushTechnicalSnippet("SVG: início do arquivo", text.slice(0, 3000));
+      }
+
+      function parsePdfMetadata(arrayBuffer) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const text = textDecoderLatin.decode(bytes);
+        const header = text.slice(0, 32).match(/%PDF-(\d+\.\d+)/);
+        addMetadata("PDF", "Versão do PDF", header ? header[1] : "não detectado", "Cabeçalho PDF", "baixo");
+        const fields = ["Title", "Author", "Subject", "Keywords", "Creator", "Producer", "CreationDate", "ModDate"];
+        fields.forEach((field) => {
+          const value = extractPdfInfoValue(text, field);
+          addMetadata("PDF Info", pdfFieldPt(field), value || "não detectado", `/Info /${field}`, value ? sensitivityForField("PDF Info", field, value) : "baixo");
+        });
+        const pages = countPdfPages(text);
+        addMetadata("PDF", "Número aproximado de páginas", pages || "não detectado", "Contagem local de objetos /Type /Page", "baixo");
+        const xmp = extractXmlRange(text, "x:xmpmeta") || extractXmlRange(text, "rdf:RDF");
+        if (xmp) extractXmlMetadataFromString(xmp, "PDF XMP");
+        else addMetadata("PDF", "Metadados XMP", "não detectado", "Busca textual local", "baixo");
+        addMetadata("PDF", "Anexos/embedded files", /\/EmbeddedFile\b|\/Filespec\b/.test(text) ? "indício detectado" : "não detectado", "Busca textual por objetos PDF", /\/EmbeddedFile\b|\/Filespec\b/.test(text) ? "alto" : "baixo");
+        addMetadata("PDF", "JavaScript embutido", /\/JavaScript\b|\/JS\b/.test(text) ? "indício detectado" : "não detectado", "Busca textual por objetos PDF", /\/JavaScript\b|\/JS\b/.test(text) ? "alto" : "baixo");
+        addMetadata("PDF", "Formulários", /\/AcroForm\b|\/XFA\b/.test(text) ? "indício detectado" : "não detectado", "Busca textual por objetos PDF", /\/AcroForm\b|\/XFA\b/.test(text) ? "médio" : "baixo");
+        extractExternalLinks(text).slice(0, 50).forEach((link, index) => addMetadata("PDF", `URI externa ${index + 1}`, link, "Busca textual por URI", "alto"));
+        addMetadata("PDF", "Limitação técnica", "PDF pode conter objetos internos complexos; a extração local simplificada pode não encontrar tudo.", "Aviso didático", "médio");
+      }
+
+      function extractPdfInfoValue(text, key) {
+        const regex = new RegExp("\\/" + key + "\\s*(\\((?:\\\\.|[^\\\\)])*\\)|<[^>]{2,}>)", "i");
+        const match = text.match(regex);
+        if (!match) return "";
+        const raw = match[1];
+        if (raw.startsWith("(")) return decodePdfLiteralString(raw.slice(1, -1));
+        if (raw.startsWith("<")) return decodePdfHexString(raw.slice(1, -1));
+        return raw;
+      }
+
+      function decodePdfLiteralString(value) {
+        return value
+          .replace(/\\([nrtbf()\\])/g, (_, ch) => ({ n: "\n", r: "\r", t: "\t", b: "\b", f: "\f", "(": "(", ")": ")", "\\": "\\" }[ch] || ch))
+          .replace(/\\([0-7]{1,3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)))
+          .trim();
+      }
+
+      function decodePdfHexString(hex) {
+        const clean = hex.replace(/\s+/g, "");
+        const bytes = [];
+        for (let i = 0; i < clean.length; i += 2) bytes.push(parseInt(clean.slice(i, i + 2).padEnd(2, "0"), 16));
+        if (bytes[0] === 0xfe && bytes[1] === 0xff) {
+          let out = "";
+          for (let i = 2; i + 1 < bytes.length; i += 2) out += String.fromCharCode((bytes[i] << 8) | bytes[i + 1]);
+          return out.trim();
+        }
+        return textDecoderUtf8.decode(Uint8Array.from(bytes)).trim();
+      }
+
+      function pdfFieldPt(field) {
+        return {
+          Title: "Título",
+          Author: "Autor",
+          Subject: "Assunto",
+          Keywords: "Palavras-chave",
+          Creator: "Criador",
+          Producer: "Produtor",
+          CreationDate: "Data de criação",
+          ModDate: "Data de modificação"
+        }[field] || field;
+      }
+
+      function countPdfPages(text) {
+        const matches = text.match(/\/Type\s*\/Page\b/g);
+        return matches ? matches.length : 0;
+      }
+
+      async function parseZipOfficeMetadata(arrayBuffer, file) {
+        let entries;
+        try {
+          entries = parseZipEntries(arrayBuffer);
+        } catch (error) {
+          addMetadata("ZIP", "Erro de leitura", error.message, "Diretório central ZIP", "médio");
+          return;
+        }
+        state.zip = { entries };
+        addMetadata("ZIP", "Arquivos internos", entries.length, "Diretório central ZIP", "baixo");
+        const names = entries.map((entry) => entry.name);
+        pushTechnicalSnippet("ZIP: lista de arquivos internos", names.slice(0, 600).join("\n"));
+
+        const kind = names.some((name) => name.startsWith("word/")) ? "DOCX" :
+          names.some((name) => name.startsWith("xl/")) ? "XLSX" :
+          names.some((name) => name.startsWith("ppt/")) ? "PPTX" : "ZIP";
+        addMetadata("ZIP", "Tipo inferido do pacote", kind, "Nomes de arquivos internos (inferido)", "baixo");
+        if (kind !== "ZIP") state.office = { kind, entries, arrayBuffer };
+        else addMetadata("ZIP", "Metadados Office", "não detectado; pacote ZIP genérico", "Estrutura interna", "baixo");
+
+        if (entries.some((entry) => entry.method !== 0 && entry.method !== 8)) {
+          addMetadata("ZIP", "Métodos de compressão", "há entradas com método não suportado para extração textual", "Diretório central ZIP", "médio");
+        }
+
+        await parseCommonOfficeProperties(entries);
+        await parseOfficeRelationships(entries);
+        if (kind === "DOCX") await parseDocxMetadata(entries);
+        if (kind === "XLSX") await parseXlsxMetadata(entries);
+        if (kind === "PPTX") await parsePptxMetadata(entries);
+      }
+
+      async function parseCommonOfficeProperties(entries) {
+        const core = await readZipTextIfExists(entries, "docProps/core.xml");
+        if (core) {
+          pushTechnicalSnippet("Office: docProps/core.xml", core.slice(0, 4000));
+          const doc = parseXmlDocument(core, "application/xml");
+          const fields = ["title", "subject", "creator", "keywords", "description", "lastModifiedBy", "revision", "created", "modified", "lastPrinted", "category", "contentStatus", "language", "version"];
+          fields.forEach((field) => addXmlLocalText(doc, "Propriedades Office", field, "docProps/core.xml"));
+        } else {
+          addMetadata("Propriedades Office", "core.xml", "não detectado", "docProps/core.xml", "baixo");
+        }
+
+        const app = await readZipTextIfExists(entries, "docProps/app.xml");
+        if (app) {
+          pushTechnicalSnippet("Office: docProps/app.xml", app.slice(0, 4000));
+          const doc = parseXmlDocument(app, "application/xml");
+          ["Application", "AppVersion", "Company", "Manager", "Template", "TotalTime", "Pages", "Words", "Characters", "Slides", "Notes", "HiddenSlides", "PresentationFormat", "DocSecurity", "HyperlinksChanged", "SharedDoc"].forEach((field) => addXmlLocalText(doc, "Propriedades Office", field, "docProps/app.xml"));
+        } else {
+          addMetadata("Propriedades Office", "app.xml", "não detectado", "docProps/app.xml", "baixo");
+        }
+
+        const custom = await readZipTextIfExists(entries, "docProps/custom.xml");
+        if (custom) {
+          pushTechnicalSnippet("Office: docProps/custom.xml", custom.slice(0, 4000));
+          const doc = parseXmlDocument(custom, "application/xml");
+          getElementsByLocalName(doc, "property").forEach((prop) => {
+            const name = prop.getAttribute("name") || "Propriedade personalizada";
+            const value = cleanText(prop.textContent);
+            addMetadata("Propriedades personalizadas", name, value, "docProps/custom.xml", sensitivityForField("Propriedades personalizadas", name, value));
+          });
+        } else {
+          addMetadata("Propriedades Office", "custom.xml", "não detectado", "docProps/custom.xml", "baixo");
+        }
+      }
+
+      async function parseOfficeRelationships(entries) {
+        const relEntries = entries.filter((entry) => entry.name.endsWith(".rels"));
+        for (const entry of relEntries) {
+          const text = await readZipEntryText(entry);
+          const doc = parseXmlDocument(text, "application/xml");
+          getElementsByLocalName(doc, "Relationship").forEach((rel) => {
+            const target = rel.getAttribute("Target") || "";
+            const mode = rel.getAttribute("TargetMode") || "";
+            const type = rel.getAttribute("Type") || "";
+            if (/external/i.test(mode) || /^https?:\/\//i.test(target) || /^file:/i.test(target)) {
+              addMetadata("Relações Office", "Vínculo externo", `${target} (${type})`, entry.name, "alto");
+            }
+          });
+        }
+      }
+
+      async function parseDocxMetadata(entries) {
+        addMetadata("DOCX", "Tipo de pacote", "Documento Word Open XML", "Estrutura interna", "baixo");
+        const comments = await readZipTextIfExists(entries, "word/comments.xml");
+        if (comments) {
+          const doc = parseXmlDocument(comments, "application/xml");
+          const commentElements = getElementsByLocalName(doc, "comment");
+          addMetadata("DOCX", "Presença de comentários", `${commentElements.length || "sim"} comentário(s)`, "word/comments.xml", "alto");
+          collectAttributes(commentElements, ["author", "initials", "date"]).forEach((item) => addMetadata("DOCX comentários", item.field, item.value, "word/comments.xml", sensitivityForField("DOCX comentários", item.field, item.value)));
+          pushTechnicalSnippet("DOCX: word/comments.xml", comments.slice(0, 4000));
+        } else {
+          addMetadata("DOCX", "Comentários", "não detectado", "word/comments.xml", "baixo");
+        }
+
+        const documentXml = await readZipTextIfExists(entries, "word/document.xml");
+        if (documentXml) {
+          const revisionMatches = documentXml.match(/<w:(ins|del|moveFrom|moveTo)\b/g) || [];
+          addMetadata("DOCX", "Presença de controle de alterações", revisionMatches.length ? `${revisionMatches.length} marca(s) detectada(s)` : "não detectado", "word/document.xml", revisionMatches.length ? "alto" : "baixo");
+          [...documentXml.matchAll(/w:author="([^"]+)"/g)].map((m) => m[1]).filter(uniqueFilter).forEach((author) => addMetadata("DOCX revisões", "Autor em revisão", author, "word/document.xml", "alto"));
+          pushTechnicalSnippet("DOCX: word/document.xml (trecho técnico)", documentXml.slice(0, 3000));
+        }
+
+        const people = await readZipTextIfExists(entries, "word/people.xml");
+        if (people) {
+          const values = [...people.matchAll(/(?:w15:)?author="([^"]+)"|displayName="([^"]+)"/g)].map((m) => m[1] || m[2]).filter(Boolean).filter(uniqueFilter);
+          values.forEach((person) => addMetadata("DOCX pessoas", "Nome de usuário interno", person, "word/people.xml", "alto"));
+          pushTechnicalSnippet("DOCX: word/people.xml", people.slice(0, 3000));
+        }
+
+        const settings = await readZipTextIfExists(entries, "word/settings.xml");
+        if (settings) {
+          addMetadata("DOCX", "Configuração trackRevisions", /<w:trackRevisions\b/.test(settings) ? "ativada ou registrada" : "não detectado", "word/settings.xml", /<w:trackRevisions\b/.test(settings) ? "alto" : "baixo");
+          pushTechnicalSnippet("DOCX: word/settings.xml", settings.slice(0, 3000));
+        }
+
+        ["word/styles.xml", "word/footnotes.xml", "word/endnotes.xml"].forEach((name) => {
+          if (entries.some((entry) => entry.name === name)) addMetadata("DOCX", `Arquivo interno ${name}`, "presente", "Estrutura interna", "baixo");
+        });
+      }
+
+      async function parseXlsxMetadata(entries) {
+        addMetadata("XLSX", "Tipo de pacote", "Planilha Excel Open XML", "Estrutura interna", "baixo");
+        const workbook = await readZipTextIfExists(entries, "xl/workbook.xml");
+        if (workbook) {
+          const doc = parseXmlDocument(workbook, "application/xml");
+          const sheets = getElementsByLocalName(doc, "sheet").map((sheet) => sheet.getAttribute("name")).filter(Boolean);
+          addMetadata("XLSX", "Planilhas existentes", sheets.length || "não detectado", "xl/workbook.xml", "baixo");
+          sheets.forEach((name, index) => addMetadata("XLSX", `Nome da aba ${index + 1}`, name, "xl/workbook.xml", sensitivityForField("XLSX", "Nome da aba", name)));
+          getElementsByLocalName(doc, "definedName").forEach((el) => addMetadata("XLSX", `Nome definido ${el.getAttribute("name") || ""}`.trim(), cleanText(el.textContent), "xl/workbook.xml", "médio"));
+          pushTechnicalSnippet("XLSX: xl/workbook.xml", workbook.slice(0, 4000));
+        }
+
+        const sharedStrings = entries.find((entry) => entry.name === "xl/sharedStrings.xml");
+        if (sharedStrings) {
+          const text = await readZipEntryText(sharedStrings);
+          const count = (text.match(/<si\b/g) || []).length;
+          addMetadata("XLSX", "Shared strings", `${count} item(ns); conteúdo não exibido por padrão`, "xl/sharedStrings.xml", "médio");
+        }
+
+        const commentEntries = entries.filter((entry) => /^xl\/comments.*\.xml$/i.test(entry.name));
+        if (commentEntries.length) {
+          addMetadata("XLSX", "Comentários", `${commentEntries.length} arquivo(s) de comentários`, "Estrutura interna", "alto");
+          for (const entry of commentEntries) {
+            const text = await readZipEntryText(entry);
+            const authors = [...text.matchAll(/<author>([\s\S]*?)<\/author>/g)].map((m) => cleanText(m[1])).filter(Boolean).filter(uniqueFilter);
+            authors.forEach((author) => addMetadata("XLSX comentários", "Autor", author, entry.name, "alto"));
+            pushTechnicalSnippet(`XLSX: ${entry.name}`, text.slice(0, 3000));
+          }
+        } else {
+          addMetadata("XLSX", "Comentários", "não detectado", "xl/comments*.xml", "baixo");
+        }
+
+        const externalLinks = entries.filter((entry) => entry.name.startsWith("xl/externalLinks/"));
+        addMetadata("XLSX", "Vínculos externos", externalLinks.length ? `${externalLinks.length} arquivo(s) interno(s)` : "não detectado", "xl/externalLinks", externalLinks.length ? "alto" : "baixo");
+        const connections = entries.filter((entry) => entry.name.startsWith("xl/connections"));
+        addMetadata("XLSX", "Conexões externas", connections.length ? `${connections.length} arquivo(s) interno(s)` : "não detectado", "xl/connections", connections.length ? "alto" : "baixo");
+        addMetadata("XLSX", "Macros/VBA", entries.some((entry) => /vbaProject\.bin$/i.test(entry.name)) ? "indício detectado" : "não detectado", "Busca por vbaProject.bin", entries.some((entry) => /vbaProject\.bin$/i.test(entry.name)) ? "alto" : "baixo");
+      }
+
+      async function parsePptxMetadata(entries) {
+        addMetadata("PPTX", "Tipo de pacote", "Apresentação PowerPoint Open XML", "Estrutura interna", "baixo");
+        const slides = entries.filter((entry) => /^ppt\/slides\/slide\d+\.xml$/i.test(entry.name));
+        addMetadata("PPTX", "Número de slides", slides.length || "não detectado", "Arquivos ppt/slides/slide*.xml", "baixo");
+        const comments = entries.filter((entry) => /^ppt\/comments\/comment.*\.xml$/i.test(entry.name) || /^ppt\/commentAuthors\.xml$/i.test(entry.name));
+        addMetadata("PPTX", "Comentários", comments.length ? `${comments.length} arquivo(s) interno(s)` : "não detectado", "Estrutura PPTX", comments.length ? "alto" : "baixo");
+        for (const entry of comments) {
+          const text = await readZipEntryText(entry);
+          const names = [...text.matchAll(/name="([^"]+)"/g)].map((m) => m[1]).filter(uniqueFilter);
+          names.forEach((name) => addMetadata("PPTX comentários", "Autor", name, entry.name, "alto"));
+          pushTechnicalSnippet(`PPTX: ${entry.name}`, text.slice(0, 3000));
+        }
+        const notes = entries.filter((entry) => /^ppt\/notesSlides\/notesSlide\d+\.xml$/i.test(entry.name));
+        addMetadata("PPTX", "Notas do apresentador", notes.length ? `${notes.length} arquivo(s) detectado(s)` : "não detectado", "ppt/notesSlides", notes.length ? "alto" : "baixo");
+        const media = entries.filter((entry) => entry.name.startsWith("ppt/media/"));
+        addMetadata("PPTX", "Mídias embutidas", media.length ? `${media.length} arquivo(s)` : "não detectado", "ppt/media", media.length ? "médio" : "baixo");
+        addMetadata("PPTX", "Macros/VBA", entries.some((entry) => /vbaProject\.bin$/i.test(entry.name)) ? "indício detectado" : "não detectado", "Busca por vbaProject.bin", entries.some((entry) => /vbaProject\.bin$/i.test(entry.name)) ? "alto" : "baixo");
+      }
+
+      function parseOldOfficeMetadata() {
+        addMetadata("Office antigo", "Formato OLE/CFB", "detectado pelo header D0 CF 11 E0 A1 B1 1A E1", "Assinatura mágica", "baixo");
+        addMetadata("Office antigo", "Extração de SummaryInformation", "Formato antigo do Microsoft Office detectado. A extração completa de metadados OLE não foi implementada nesta versão.", "Limitação técnica", "médio");
+      }
+
+      async function parseTextMetadata(text, file, arrayBuffer) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const bom = detectBom(bytes);
+        const ext = getExtension(file.name);
+        addMetadata("Texto", "Codificação provável", bom.encoding || "UTF-8 provável (inferido)", bom.origin, "baixo");
+        addMetadata("Texto", "Presença de BOM", bom.hasBom ? "sim" : "não detectado", "Primeiros bytes", "baixo");
+        addMetadata("Texto", "Quantidade de linhas", text ? text.split(/\r\n|\r|\n/).length : 0, "Leitura textual local", "baixo");
+        addMetadata("Texto", "Quantidade de caracteres", [...text].length, "Leitura textual local", "baixo");
+        addMetadata("Texto", "Primeiros bytes", bytesToHex(bytes.subarray(0, 32)), "Primeiros bytes", "baixo");
+
+        if (ext === "csv") {
+          const firstLine = text.split(/\r\n|\r|\n/)[0] || "";
+          const delimiter = [",", ";", "\t", "|"].map((d) => ({ d, count: firstLine.split(d).length - 1 })).sort((a, b) => b.count - a.count)[0];
+          addMetadata("CSV", "Delimitador provável", delimiter && delimiter.count ? JSON.stringify(delimiter.d).replace(/"/g, "") : "não detectado", "Primeira linha (inferido)", "baixo");
+        }
+
+        if (ext === "json" || /^[\s\r\n]*[\[{]/.test(text)) {
+          try {
+            const parsed = JSON.parse(text);
+            addMetadata("JSON", "JSON válido", "sim", "JSON.parse local", "baixo");
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) addMetadata("JSON", "Chaves no primeiro nível", Object.keys(parsed).join(", ") || "sem chaves", "JSON.parse local", "médio");
+          } catch (error) {
+            addMetadata("JSON", "JSON válido", "não", "JSON.parse local", "baixo");
+          }
+        }
+
+        if (["html", "htm"].includes(ext) || /<html[\s>]/i.test(text) || /<!doctype\s+html/i.test(text)) {
+          parseHtmlTextMetadata(text);
+        } else if (ext === "xml" || /^<\?xml/i.test(text.trimStart())) {
+          parseXmlTextMetadata(text);
+        }
+        pushTechnicalSnippet("Texto: início do arquivo", text.slice(0, 3000));
+      }
+
+      function detectBom(bytes) {
+        if (startsWith(bytes, [0xef, 0xbb, 0xbf])) return { hasBom: true, encoding: "UTF-8 com BOM", origin: "BOM EF BB BF" };
+        if (startsWith(bytes, [0xff, 0xfe, 0x00, 0x00])) return { hasBom: true, encoding: "UTF-32 LE com BOM", origin: "BOM FF FE 00 00" };
+        if (startsWith(bytes, [0x00, 0x00, 0xfe, 0xff])) return { hasBom: true, encoding: "UTF-32 BE com BOM", origin: "BOM 00 00 FE FF" };
+        if (startsWith(bytes, [0xff, 0xfe])) return { hasBom: true, encoding: "UTF-16 LE com BOM", origin: "BOM FF FE" };
+        if (startsWith(bytes, [0xfe, 0xff])) return { hasBom: true, encoding: "UTF-16 BE com BOM", origin: "BOM FE FF" };
+        return { hasBom: false, encoding: "", origin: "Inferência textual local" };
+      }
+
+      function parseHtmlTextMetadata(text) {
+        const doc = parseXmlDocument(text, "text/html");
+        const title = doc.querySelector("title")?.textContent;
+        addMetadata("HTML", "Título", cleanText(title) || "não detectado", "Elemento title", title ? "médio" : "baixo");
+        doc.querySelectorAll("meta").forEach((meta, index) => {
+          const name = meta.getAttribute("name") || meta.getAttribute("property") || meta.getAttribute("http-equiv") || `meta ${index + 1}`;
+          const value = meta.getAttribute("content") || "";
+          addMetadata("HTML meta", name, value || "sem content", "Tag meta", sensitivityForField("HTML meta", name, value));
+        });
+        const comments = [...text.matchAll(/<!--([\s\S]*?)-->/g)].map((m) => cleanText(m[1])).filter(Boolean);
+        comments.forEach((comment, index) => addMetadata("HTML", `Comentário ${index + 1}`, comment.slice(0, 1000), "Comentário HTML", sensitivityForField("HTML", "Comentário", comment)));
+        const scripts = (text.match(/<script\b/gi) || []).length;
+        addMetadata("HTML", "Scripts", scripts ? `${scripts} ocorrência(s)` : "não detectado", "Busca textual por tag script", scripts ? "alto" : "baixo");
+        const links = extractExternalLinks(text);
+        links.slice(0, 100).forEach((link, index) => addMetadata("HTML", `Link externo ${index + 1}`, link, "Atributos href/src", "alto"));
+        if (!links.length) addMetadata("HTML", "Links externos", "não detectado", "Atributos href/src", "baixo");
+      }
+
+      function parseXmlTextMetadata(text) {
+        const doc = parseXmlDocument(text, "application/xml");
+        const title = getElementsByLocalName(doc, "title")[0]?.textContent;
+        addMetadata("XML", "Título", cleanText(title) || "não detectado", "Elemento title", title ? "médio" : "baixo");
+        const comments = [...text.matchAll(/<!--([\s\S]*?)-->/g)].map((m) => cleanText(m[1])).filter(Boolean);
+        comments.forEach((comment, index) => addMetadata("XML", `Comentário ${index + 1}`, comment.slice(0, 1000), "Comentário XML", sensitivityForField("XML", "Comentário", comment)));
+        const links = extractExternalLinks(text);
+        links.slice(0, 100).forEach((link, index) => addMetadata("XML", `Link externo ${index + 1}`, link, "Busca textual por URL", "alto"));
+        if (!links.length) addMetadata("XML", "Links externos", "não detectado", "Busca textual por URL", "baixo");
+      }
+
+      function extractXmlMetadataFromString(xmlText, source) {
+        const clean = xmlText.trim();
+        if (!clean) return;
+        addMetadata("XMP/XML", "Bloco detectado", `${clean.length.toLocaleString("pt-BR")} caracteres`, source, "médio");
+        pushTechnicalSnippet(`${source}: bloco XML/XMP`, clean.slice(0, 5000));
+        const doc = parseXmlDocument(clean, "application/xml");
+        if (!doc || doc.querySelector("parsererror")) {
+          addMetadata("XMP/XML", "Leitura XML", "bloco detectado, mas não parseado como XML completo", source, "baixo");
+          return;
+        }
+        const wanted = ["title", "description", "creator", "CreateDate", "ModifyDate", "MetadataDate", "CreatorTool", "Producer", "format", "DocumentID", "InstanceID", "OriginalDocumentID", "GPSLatitude", "GPSLongitude", "Rating", "Label"];
+        wanted.forEach((name) => addXmlLocalText(doc, "XMP/XML", name, source));
+        getElementsByLocalName(doc, "li").forEach((el) => {
+          const parent = el.parentElement?.parentElement;
+          const parentName = parent ? parent.localName : "";
+          if (/creator|author|title|description|subject/i.test(parentName)) {
+            addMetadata("XMP/XML", parentName, cleanText(el.textContent), source, sensitivityForField("XMP/XML", parentName, el.textContent));
+          }
+        });
+      }
+
+      function parseXmlDocument(text, mime) {
+        try {
+          return new DOMParser().parseFromString(text, mime);
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function getElementsByLocalName(doc, localName) {
+        if (!doc) return [];
+        return Array.from(doc.getElementsByTagName("*")).filter((el) => el.localName === localName || el.nodeName === localName);
+      }
+
+      function addXmlLocalText(doc, category, localName, source) {
+        const values = getElementsByLocalName(doc, localName)
+          .map((el) => cleanText(el.textContent))
+          .filter(Boolean)
+          .filter(uniqueFilter);
+        values.forEach((value) => addMetadata(category, localName, value, source, sensitivityForField(category, localName, value)));
+      }
+
+      function collectAttributes(elements, names) {
+        const out = [];
+        elements.forEach((el) => {
+          names.forEach((name) => {
+            for (const attr of el.attributes || []) {
+              if (attr.localName === name || attr.name.endsWith(`:${name}`)) out.push({ field: name, value: attr.value });
+            }
+          });
+        });
+        return out.filter((item, index, arr) => arr.findIndex((other) => other.field === item.field && other.value === item.value) === index);
+      }
+
+      function cleanText(value) {
+        return String(value || "").replace(/\s+/g, " ").trim();
+      }
+
+      function uniqueFilter(value, index, array) {
+        return array.indexOf(value) === index;
+      }
+
+      function extractExternalLinks(text) {
+        const links = new Set();
+        const regexes = [
+          /\bhttps?:\/\/[^\s"'<>)]*/gi,
+          /\bfile:\/\/[^\s"'<>)]*/gi,
+          /\b(?:href|src|xlink:href|Target)=["']([^"']+)["']/gi,
+          /\/URI\s*\(([^)]+)\)/gi
+        ];
+        regexes.forEach((regex) => {
+          let match;
+          while ((match = regex.exec(text))) {
+            const value = cleanText(match[1] || match[0]);
+            if (/^(https?:\/\/|file:\/\/|[a-z]+:)/i.test(value)) links.add(value);
+          }
+        });
+        return Array.from(links);
+      }
+
+      function extractXmlRange(text, tagName) {
+        const escaped = tagName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = new RegExp("<" + escaped + "\\b[\\s\\S]*?<\\/" + escaped + ">", "i");
+        const match = text.match(regex);
+        return match ? match[0] : "";
+      }
+
+      function addMetadata(category, field, value, source, sensitivity) {
+        const normalizedValue = normalizeValue(value);
+        if (normalizedValue === "" || normalizedValue === "undefined" || normalizedValue === "null") return;
+        const item = {
+          category: String(category || "Geral"),
+          field: String(field || "Campo"),
+          value: normalizedValue,
+          source: String(source || "não informado"),
+          sensitivity: normalizeSensitivity(sensitivity || sensitivityForField(category, field, normalizedValue))
+        };
+        state.metadata.push(item);
+      }
+
+      function normalizeValue(value) {
+        if (value === null || value === undefined) return "";
+        if (Array.isArray(value)) return value.map(normalizeValue).filter(Boolean).join("; ");
+        if (typeof value === "object") return JSON.stringify(value);
+        return String(value).trim();
+      }
+
+      function normalizeSensitivity(value) {
+        const clean = String(value || "baixo").toLowerCase();
+        if (clean.includes("alto")) return "alto";
+        if (clean.includes("medio") || clean.includes("médio")) return "médio";
+        return "baixo";
+      }
+
+      function isNegativeValue(value) {
+        const clean = String(value || "").toLowerCase();
+        return !clean ||
+          /^não detectado/.test(clean) ||
+          /^nao detectado/.test(clean) ||
+          clean.includes("sem divergência evidente") ||
+          clean.includes("não disponível") ||
+          clean.includes("nao disponível") ||
+          clean.includes("não suportado nesta versão") ||
+          clean.includes("não suportado no arquivo");
+      }
+
+      function classifyMetadataKind(item) {
+        const text = `${item.category || ""} ${item.field || ""} ${item.value || ""} ${item.source || ""}`.toLowerCase();
+        if (/gps|latitude|longitude|coordenad|altitude|geoloc/.test(text)) return "dado de localização";
+        if (/software|producer|produtor|application|aplicativo|appversion|creator tool|creatortool|modelo|model|make|camera|câmera|device|dispositivo|lens|serial|versão|version/.test(text)) return "dado técnico";
+        if (/autor|author|creator|criador|propriet|owner|lastmodifiedby|byline|nome de usuário|nome de usuario|empresa|company|manager|e-?mail|email/.test(text)) return "dado de autoria";
+        if (/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(item.value || "")) return "dado pessoal";
+        if (/(c:\\users\\|\/users\/|\/home\/|desktop\\|documents\\|documentos\\)/i.test(item.value || "")) return "dado pessoal";
+        if (/data|date|time|hora|created|modified|impres|printed|timestamp/.test(text)) return "dado temporal";
+        if (/assinatura|header|chunk|zip|pacote|estrutura|página|pagina|slide|aba|dimens|largura|altura|mime|extensão|extensao|tamanho/.test(text)) return "dado estrutural do arquivo";
+        return "dado técnico";
+      }
+
+      function isGpsCoordinateSignal(item) {
+        const text = `${item.category || ""} ${item.field || ""} ${item.value || ""} ${item.source || ""}`.toLowerCase();
+        return /latitude decimal|longitude decimal|gpslatitude(?!ref)|gpslongitude(?!ref)|coordenadas gps|coordenad/.test(text);
+      }
+
+      function isGpsTechnicalHint(item) {
+        const text = `${item.category || ""} ${item.field || ""} ${item.value || ""} ${item.source || ""}`.toLowerCase();
+        return /gpsinfoifdpointer|gpsversionid|gpsmapdatum|gps.*ifd|ponteiro para ifd gps|bloco gps/.test(text) && !isGpsCoordinateSignal(item);
+      }
+
+      function sensitivityForField(category, field, value) {
+        const text = `${category || ""} ${field || ""} ${value || ""}`.toLowerCase();
+        if (/gpsinfoifdpointer|ponteiro para ifd gps|gpsversionid|gpsmapdatum/.test(text)) return "médio";
+        if (/latitude decimal|longitude decimal|gpslatitude(?!ref)|gpslongitude(?!ref)|coordenad/.test(text)) return "alto";
+        if (/gps|geoloc|altitude/.test(text)) return "médio";
+        if (/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(value || "")) return "alto";
+        if (/creatortool|creator tool|software|producer|produtor|application|aplicativo|appversion/.test(text)) return "médio";
+        if (/autor|author|creator|criador|propriet|lastmodifiedby|último editor|ultimo editor|último autor|ultimo autor|byline|nome de usuário|nome de usuario|username|owner|manager|company|empresa/.test(text)) return "alto";
+        if (/coment|comment|revis|track|histórico|historico|revision|writereditor|usercomment|alterações|alteracoes/.test(text)) return "alto";
+        if (/(c:\\users\\|\/users\/|\/home\/|desktop\\|documents\\|documentos\\)/i.test(value || "")) return "alto";
+        if (/script|javascript|vínculo externo|vinculo externo|link externo|uri externa|embedded|anexo|arquivo embutido|macro|vba|conex|external|relationship/.test(text)) return "alto";
+        if (/data|date|time|created|modified|impres|printed|software|producer|produtor|application|aplicativo|appversion|modelo|model|make|camera|câmera|dispositivo|device|lens|serial|versão|version|xmp|iptc|estrutura|pacote|zip|chunk|páginas|paginas|abas|slides/.test(text)) return "médio";
+        return "baixo";
+      }
+
+      function classifySensitivity(metadata) {
+        return classifyPrivacyRisk(metadata);
+      }
+
+      function classifyPrivacyRisk(metadata) {
+        const relevant = metadata.filter((item) => !isNegativeValue(item.value));
+        const hasGpsCoordinates = relevant.some(isGpsCoordinateSignal);
+        const hasGpsHint = !hasGpsCoordinates && relevant.some(isGpsTechnicalHint);
+        const hasHigh = relevant.some((item) => item.sensitivity === "alto") || hasGpsCoordinates;
+        const hasMedium = relevant.some((item) => item.sensitivity === "médio") || hasGpsHint;
+        const phraseRelevant = relevant.filter((item) => !(item.sensitivity === "baixo" && /^(Arquivo|Assinatura|Imagem)$/i.test(item.category)));
+        const text = phraseRelevant.map((item) => `${item.category} ${item.field} ${item.value}`).join(" ").toLowerCase();
+        const phrases = [];
+        const reasons = [];
+        if (hasGpsCoordinates) {
+          phrases.push("Este arquivo contém coordenadas GPS.");
+          reasons.push("dados de localização GPS");
+        } else if (hasGpsHint) {
+          phrases.push("Há indício de bloco GPS, mas coordenadas não foram extraídas.");
+          reasons.push("indício técnico de bloco GPS");
+        }
+        if (/autor|author|creator|criador|lastmodifiedby|byline|owner|nome de usuário|nome de usuario/.test(text)) phrases.push("Este arquivo contém possível identificação de autor ou usuário.");
+        if (/autor|author|creator|criador|lastmodifiedby|byline|owner|nome de usuário|nome de usuario/.test(text)) reasons.push("identificação de autor ou editor");
+        if (/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(text)) phrases.push("Este arquivo contém possível endereço de e-mail.");
+        if (/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(text)) reasons.push("e-mail");
+        if (/(c:\\users\\|\/users\/|\/home\/|desktop\\|documents\\|documentos\\)/i.test(text)) phrases.push("Este arquivo contém possível caminho interno de usuário.");
+        if (/(c:\\users\\|\/users\/|\/home\/|desktop\\|documents\\|documentos\\)/i.test(text)) reasons.push("caminho interno de usuário");
+        if (/coment|comment|revis|track|histórico|historico|revision/.test(text)) phrases.push("Este arquivo contém comentários, histórico de revisão ou marcas semelhantes.");
+        if (/coment|comment|revis|track|histórico|historico|revision/.test(text)) reasons.push("comentários ou revisões");
+        if (/macro|vba|script|javascript|vínculo externo|vinculo externo|link externo|conex|embedded|anexo/.test(text)) phrases.push("Foram encontrados possíveis scripts, macros, anexos, vínculos ou conexões externas.");
+        if (/macro|vba|script|javascript|vínculo externo|vinculo externo|link externo|conex|embedded|anexo/.test(text)) reasons.push("scripts, macros, anexos ou vínculos externos");
+        if (/created|modified|date|data|time|hora/.test(text)) phrases.push("Este arquivo contém datas de criação/modificação internas.");
+        if (/created|modified|date|data|time|hora/.test(text)) reasons.push("datas internas");
+        if (/software|producer|application|appversion|creator tool/.test(text)) phrases.push("Este arquivo contém nome de software, produtor ou aplicativo criador.");
+        if (/software|producer|application|appversion|creator tool/.test(text)) reasons.push("software de criação");
+        if (/modelo|model|make|camera|câmera|lens|serial/.test(text)) phrases.push("Este arquivo contém possível identificação de equipamento.");
+        if (!phrases.length) phrases.push("Não foram encontrados metadados sensíveis evidentes, mas isso não garante ausência total de informações ocultas.");
+        const level = hasHigh ? "alto" : hasMedium ? "médio" : "baixo";
+        const justification = buildRiskJustification(level, reasons);
+        return {
+          level,
+          phrases: phrases.filter(uniqueFilter),
+          justification
+        };
+      }
+
+      function buildRiskJustification(level, reasons) {
+        const cleanReasons = reasons.filter(uniqueFilter);
+        if (level === "alto") {
+          return `Risco alto porque foram encontrados ${cleanReasons.slice(0, 3).join(", ") || "metadados diretamente sensíveis"}.`;
+        }
+        if (level === "médio") {
+          if (cleanReasons.includes("indício técnico de bloco GPS")) {
+            return "Risco médio porque há indício de bloco GPS, mas coordenadas não foram extraídas.";
+          }
+          return "Risco médio porque o arquivo contém dados técnicos internos, como datas, software, estrutura do arquivo ou informações do dispositivo, mas não foram detectados dados pessoais diretos de alto risco.";
+        }
+        return "Risco baixo porque foram encontrados apenas dados básicos do arquivo ou metadados sem exposição sensível evidente.";
+      }
+
+      function renderDashboard() {
+        renderSensitiveSummary();
+        renderSummaryCards();
+        renderHashPanel();
+        renderRisk();
+        renderTechnicalMetadata();
+        renderEducationalExplanation();
+        renderTechnicalSnippets();
+        renderCleanupAvailability();
+      }
+
+      function buildSensitiveSummary(metadata) {
+        const groups = [
+          {
+            title: "Identidade",
+            intro: "Dados que podem vincular o arquivo a pessoas, contas ou organizações.",
+            fields: [
+              { label: "Autor/criador", pattern: /autor|author|creator|criador|byline|artist/i, help: "Pode revelar quem criou ou editou o arquivo." },
+              { label: "Proprietário", pattern: /propriet|owner|cameraownername/i, help: "Pode indicar a pessoa associada ao arquivo ou equipamento." },
+              { label: "Último editor", pattern: /lastmodifiedby|último editor|ultimo editor|último autor|ultimo autor/i, help: "Pode revelar quem fez a alteração mais recente." },
+              { label: "Nome de usuário", pattern: /nome de usuário|nome de usuario|username|usuário interno|usuario interno|people|autor em revisão/i, help: "Pode expor usuário interno do computador ou documento." },
+              { label: "Empresa/organização", pattern: /empresa|company|organization|organização|manager/i, help: "Pode revelar vínculo institucional." },
+              { label: "E-mail detectado", pattern: /e-?mail|email/i, valuePattern: /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i, help: "Pode expor uma conta pessoal ou institucional." }
+            ]
+          },
+          {
+            title: "Tempo",
+            intro: "Datas internas podem revelar criação, edição, exportação ou impressão.",
+            fields: [
+              { label: "Data interna de criação", pattern: /creationdate|created|data de criação|createDate|datetimeoriginal|datetimedigitized/i, excludeSource: /file api/i, help: "Pode revelar quando o arquivo foi criado, capturado, digitalizado ou exportado." },
+              { label: "Data interna de modificação", pattern: /moddate|modified|dateTime|data de modificação|modifydate|metadatadate/i, excludeSource: /file api/i, help: "Pode revelar quando houve edição, exportação ou alteração gravada dentro do arquivo." },
+              { label: "Última modificação do arquivo no sistema", pattern: /última modificação do arquivo no sistema|ultima modificação do arquivo no sistema/i, sourcePattern: /file api/i, help: "Vem da File API do navegador e pode não corresponder à data interna do documento." },
+              { label: "Data de última impressão", pattern: /lastprinted|última impressão|ultima impressao|impres/i, help: "Pode revelar quando o documento foi impresso." },
+              { label: "Outras datas internas", pattern: /date|data|time|hora|timestamp/i, excludeSource: /file api/i, help: "Podem revelar momentos de captura, digitalização, revisão ou processamento." }
+            ]
+          },
+          {
+            title: "Localização",
+            intro: "Localização pode revelar onde uma foto ou registro foi feito.",
+            fields: [
+              { label: "GPS", pattern: /gps|coordenad|geoloc/i, matcher: (item) => isGpsCoordinateSignal(item) || isGpsTechnicalHint(item), help: "Pode revelar o local onde uma foto foi registrada. Ponteiros GPS são apenas indícios técnicos." },
+              { label: "Latitude", pattern: /latitude decimal|gpslatitude(?!ref)/i, help: "Pode revelar posição geográfica precisa." },
+              { label: "Longitude", pattern: /longitude decimal|gpslongitude(?!ref)/i, help: "Pode revelar posição geográfica precisa." },
+              { label: "Altitude", pattern: /altitude/i, help: "Pode revelar altitude aproximada do registro." },
+              { label: "Data/hora GPS", pattern: /gpsdatestamp|gpstimestamp|gps.*date|gps.*time/i, help: "Pode revelar quando a localização foi registrada." }
+            ]
+          },
+          {
+            title: "Origem técnica",
+            intro: "Dados técnicos ajudam a reconstruir como o arquivo foi produzido.",
+            fields: [
+              { label: "Software criador", pattern: /software|creatortool|creator tool/i, help: "Pode indicar o programa usado para criar ou exportar o arquivo." },
+              { label: "Produtor", pattern: /producer|produtor/i, help: "Pode indicar o sistema ou biblioteca que gerou o arquivo." },
+              { label: "Aplicativo", pattern: /application|aplicativo|appversion|app version/i, help: "Pode revelar o aplicativo e sua versão." },
+              { label: "Versão", pattern: /versão|version|appversion/i, help: "Pode indicar versão de programa, formato ou pacote." },
+              { label: "Dispositivo", pattern: /make|camera|câmera|device|dispositivo|lens/i, help: "Pode indicar câmera, celular, lente ou equipamento usado." },
+              { label: "Modelo do dispositivo", pattern: /model|modelo|lensmodel/i, help: "Pode revelar modelo de câmera, celular ou lente." },
+              { label: "Número de série", pattern: /serial|número de série|numero de serie/i, help: "Pode identificar equipamento específico." }
+            ]
+          },
+          {
+            title: "Riscos adicionais",
+            intro: "Estruturas internas podem revelar conteúdo oculto, automações ou vínculos.",
+            fields: [
+              { label: "Comentários", pattern: /coment|comment|usercomment/i, help: "Podem revelar discussões, observações ou marcas de edição." },
+              { label: "Revisões/histórico", pattern: /revis|revision|track|histórico|historico|alterações|alteracoes/i, help: "Podem revelar versões anteriores ou autores de alterações." },
+              { label: "Macros/VBA", pattern: /macro|vba/i, help: "Podem indicar automações que exigem atenção de segurança." },
+              { label: "Links externos", pattern: /link externo|vínculo externo|vinculo externo|uri externa|external|relationship/i, help: "Podem apontar para recursos fora do arquivo." },
+              { label: "Scripts embutidos", pattern: /script|javascript/i, help: "Podem indicar comportamento ativo dentro do arquivo." },
+              { label: "Caminhos internos", pattern: /caminho|path|users\\|\/users\/|\/home\/|documentos\\/i, valuePattern: /(c:\\users\\|\/users\/|\/home\/|desktop\\|documents\\|documentos\\)/i, help: "Pode revelar nome de usuário ou estrutura do computador." },
+              { label: "Anexos embutidos", pattern: /embedded|anexo|arquivo embutido|embedded files/i, help: "Podem carregar conteúdo adicional não visível de imediato." },
+              { label: "Conexões externas", pattern: /conex|connection|externalLinks|vínculos externos|vinculos externos/i, help: "Podem revelar fontes de dados externas, especialmente em planilhas." }
+            ]
+          }
+        ];
+
+        const builtGroups = groups.map((group) => ({
+          ...group,
+          fields: group.fields.map((field) => {
+            const matches = findSensitiveMatches(metadata, field);
+            return {
+              ...field,
+              matches,
+              status: statusForMatches(matches),
+              values: matches.map((item) => item.value).filter(uniqueFilter)
+            };
+          })
+        }));
+
+        const exposures = buildExposurePhrases(builtGroups);
+        return { groups: builtGroups, exposures };
+      }
+
+      function findSensitiveMatches(metadata, definition) {
+        return metadata.filter((item) => {
+          if (isNegativeValue(item.value)) return false;
+          if (definition.sourcePattern && !definition.sourcePattern.test(item.source || "")) return false;
+          if (definition.excludeSource && definition.excludeSource.test(item.source || "")) return false;
+          if (definition.matcher) return definition.matcher(item);
+          const haystack = `${item.category} ${item.field} ${item.value} ${item.source}`;
+          return definition.pattern.test(haystack) || (definition.valuePattern && definition.valuePattern.test(item.value));
+        });
+      }
+
+      function statusForMatches(matches) {
+        if (!matches.length) return "não detectado";
+        if (matches.some((item) => /não suportado/i.test(item.value))) return "não suportado neste formato";
+        if (matches.length && matches.every(isGpsTechnicalHint)) return "indício técnico";
+        if (matches.some((item) => /inferid/i.test(item.source) || /inferid/i.test(item.value))) return "inferido";
+        return "encontrado";
+      }
+
+      function buildExposurePhrases(summary) {
+        const found = (groupTitle, label) => summary.some((group) => group.title === groupTitle && group.fields.some((field) => field.label === label && field.matches.length));
+        const statusIs = (groupTitle, label, status) => summary.some((group) => group.title === groupTitle && group.fields.some((field) => field.label === label && field.status === status));
+        const phrases = [];
+        if (found("Identidade", "Autor/criador")) phrases.push("Este arquivo expõe o nome do autor ou criador.");
+        if (found("Identidade", "Último editor")) phrases.push("Este documento contém indicação de último editor.");
+        if (found("Identidade", "E-mail detectado")) phrases.push("Este arquivo contém possível endereço de e-mail.");
+        if (found("Tempo", "Data interna de criação")) phrases.push("Este arquivo contém uma data interna de criação.");
+        if (found("Tempo", "Data interna de modificação")) phrases.push("Este arquivo contém uma data interna de modificação.");
+        if (found("Tempo", "Última modificação do arquivo no sistema")) phrases.push("Este arquivo informa a última modificação registrada pelo sistema/navegador.");
+        if (found("Localização", "Latitude") || found("Localização", "Longitude")) phrases.push("Este arquivo contém coordenadas GPS.");
+        else if (statusIs("Localização", "GPS", "indício técnico")) phrases.push("Há indício de bloco GPS, mas coordenadas não foram extraídas.");
+        if (found("Origem técnica", "Software criador") || found("Origem técnica", "Produtor")) phrases.push("Este arquivo revela software, produtor ou aplicativo usado na criação.");
+        if (found("Origem técnica", "Dispositivo") || found("Origem técnica", "Modelo do dispositivo")) phrases.push("Este arquivo contém indicação de câmera, celular ou equipamento.");
+        if (found("Riscos adicionais", "Links externos") || found("Riscos adicionais", "Conexões externas")) phrases.push("Foram encontrados possíveis vínculos ou conexões externas.");
+        if (found("Riscos adicionais", "Scripts embutidos") || found("Riscos adicionais", "Macros/VBA")) phrases.push("Foram encontrados possíveis scripts, macros ou automações.");
+        if (found("Riscos adicionais", "Comentários") || found("Riscos adicionais", "Revisões/histórico")) phrases.push("Este arquivo contém comentários, revisões ou histórico de edição.");
+        if (!phrases.length) phrases.push("Não foram encontrados dados sensíveis evidentes, mas isso não garante ausência total de metadados.");
+        return phrases.filter(uniqueFilter);
+      }
+
+      function renderSensitiveSummary() {
+        if (!els.sensitiveSummary) return;
+        const summary = buildSensitiveSummary(state.metadata);
+        const exposureList = summary.exposures.map((phrase) => `<li>${escapeHtml(phrase)}</li>`).join("");
+        const visibleGroups = summary.groups
+          .map((group) => ({
+            ...group,
+            fields: state.showAllSensitiveFields ? group.fields : group.fields.filter((field) => isRelevantSensitiveField(field))
+          }))
+          .filter((group) => state.showAllSensitiveFields || group.fields.length);
+        const cards = visibleGroups.map((group) => `
+          <article class="sensitive-card">
+            <h3>${escapeHtml(group.title)}</h3>
+            <p class="small">${escapeHtml(group.intro)}</p>
+            <div class="field-list">
+              ${group.fields.map(renderSensitiveField).join("")}
+            </div>
+          </article>
+        `).join("");
+        els.sensitiveSummary.innerHTML = `
+          <div class="sensitive-card">
+            <div class="summary-actions">
+              <div>
+                <h3>Principais exposições encontradas</h3>
+                <p class="small">Resumo interpretativo dos pontos mais relevantes para privacidade e segurança.</p>
+              </div>
+            </div>
+            <ul class="exposure-list">${exposureList}</ul>
+          </div>
+          <div class="sensitive-grid">${cards || `<article class="sensitive-card"><h3>Nenhum achado relevante</h3><p>Não foram encontrados dados sensíveis evidentes nos grupos destacados. Ative "Mostrar também campos não detectados" para ver a lista completa de campos avaliados.</p></article>`}</div>
+        `;
+      }
+
+      function isRelevantSensitiveField(field) {
+        return ["encontrado", "inferido", "indício técnico"].includes(field.status);
+      }
+
+      function renderSensitiveField(field) {
+        const statusClass = field.status === "encontrado" ? "high" : ["inferido", "indício técnico"].includes(field.status) ? "medium" : "low";
+        const displayValues = displayValuesForSensitiveField(field);
+        const value = displayValues.length ? displayValues.slice(0, 4).join("; ") + (displayValues.length > 4 ? `; +${displayValues.length - 4} ocorrência(s)` : "") : field.status;
+        return `
+          <div class="field-item">
+            <div class="field-label">
+              <span>${escapeHtml(field.label)}</span>
+              <span class="badge ${statusClass}">${escapeHtml(field.status)}</span>
+            </div>
+            <p class="field-value mono">${escapeHtml(value)}</p>
+            <p class="field-help">${escapeHtml(field.help)}</p>
+          </div>
+        `;
+      }
+
+      function displayValuesForSensitiveField(field) {
+        if (!field.values.length) return [];
+        if (field.label === "GPS" && field.status === "indício técnico") return ["Indício de bloco GPS presente"];
+        if (field.label === "GPS" && field.matches.some(isGpsCoordinateSignal)) return ["Coordenadas GPS encontradas"];
+        const uniqueValues = field.values.filter(uniqueFilter);
+        if (!state.presentationMode) return uniqueValues;
+        return uniqueValues.map((value) => maskSensitiveValue(field.label, value));
+      }
+
+      function maskSensitiveValue(label, value) {
+        const text = String(value || "");
+        if (/latitude|longitude|gps/i.test(label)) return "coordenadas ocultadas";
+        if (/e-?mail/i.test(label) || /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(text)) return maskEmail(text);
+        if (/caminho|path/i.test(label) || /(c:\\users\\|\/users\/|\/home\/)/i.test(text)) return maskPath(text);
+        if (/serial|número de série|numero de serie/i.test(label)) return "********";
+        if (/autor|editor|propriet|usuário|usuario|empresa|organização|organizacao/i.test(label)) return maskNameLike(text);
+        return text.length > 10 ? `${text.slice(0, 2)}******${text.slice(-2)}` : "********";
+      }
+
+      function maskEmail(value) {
+        return String(value).replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi, (email) => {
+          const [local, domain] = email.split("@");
+          const domainParts = domain.split(".");
+          const host = domainParts.shift() || "";
+          const suffix = domainParts.length ? "." + domainParts.join(".") : "";
+          return `${local.charAt(0) || "*"}******@${host.charAt(0) || "*"}***${suffix}`;
+        });
+      }
+
+      function maskPath(value) {
+        return String(value)
+          .replace(/c:\\users\\[^\\/\s]+/ig, "C:\\Users\\********")
+          .replace(/\/users\/[^\/\s]+/ig, "/Users/********")
+          .replace(/\/home\/[^\/\s]+/ig, "/home/********");
+      }
+
+      function maskNameLike(value) {
+        return String(value).split(/(\s+)/).map((part) => {
+          if (/^\s+$/.test(part)) return part;
+          return part.length <= 1 ? "*" : `${part.charAt(0)}${"*".repeat(Math.min(6, Math.max(3, part.length - 1)))}`;
+        }).join("");
+      }
+
+      function renderSummaryCards() {
+        if (!state.file || !state.basic) return;
+        const imagePreview = state.previewUrl ? `<div class="preview"><img src="${escapeAttribute(state.previewUrl)}" alt="Miniatura do arquivo analisado"></div>` : "";
+        const alertHtml = state.basic.mismatch ? `<p class="warning">Alerta: a extensão não combina com a assinatura provável do arquivo.</p>` : `<p class="notice">Assinatura e extensão não apresentam divergência evidente.</p>`;
+        const imageInfo = state.imageInfo ? `
+          <dl class="kv">
+            <dt>Dimensões</dt><dd>${escapeHtml(state.imageInfo.width)} x ${escapeHtml(state.imageInfo.height)} px</dd>
+            <dt>Proporção</dt><dd>${escapeHtml(state.imageInfo.ratio)}</dd>
+            <dt>Megapixels</dt><dd>${escapeHtml(state.imageInfo.megapixels.toLocaleString("pt-BR", { maximumFractionDigits: 2 }))}</dd>
+          </dl>${imagePreview}` : imagePreview || `<p class="small">Miniatura ou dimensões não disponíveis para este tipo.</p>`;
+
+        els.summaryGrid.innerHTML = `
+          <article class="card">
+            <h3>Informações básicas</h3>
+            <dl class="kv">
+              <dt>Nome</dt><dd>${escapeHtml(state.file.name)}</dd>
+              <dt>Extensão</dt><dd>${escapeHtml(state.basic.extension)}</dd>
+              <dt>MIME</dt><dd>${escapeHtml(state.basic.mime)}</dd>
+              <dt>Tamanho</dt><dd>${escapeHtml(formatBytes(state.file.size))}</dd>
+              <dt>Última modificação do arquivo no sistema</dt><dd>${escapeHtml(formatDate(state.file.lastModified))}</dd>
+            </dl>
+            <p class="small">Esta data vem da File API do navegador e pode não corresponder à data interna de criação ou edição gravada dentro do documento.</p>
+          </article>
+          <article class="card">
+            <h3>Assinatura</h3>
+            <dl class="kv">
+              <dt>Header</dt><dd class="mono">${escapeHtml(state.basic.headerHex || "não disponível")}</dd>
+              <dt>ASCII</dt><dd class="mono">${escapeHtml(state.basic.headerAscii || "não disponível")}</dd>
+              <dt>Tipo provável</dt><dd>${escapeHtml(state.basic.probableType)}</dd>
+            </dl>
+            ${alertHtml}
+          </article>
+          <article class="card">
+            <h3>Imagem/visualização</h3>
+            ${imageInfo}
+          </article>
+        `;
+      }
+
+      function renderHashes() {
+        const names = Object.keys(state.hashes);
+        if (!names.length) {
+          els.hashList.innerHTML = `<p class="small">Hashes ainda não calculados.</p>`;
+          return;
+        }
+        const notes = {
+          "SHA-256": "Recomendado para verificação moderna de integridade.",
+          "SHA-512": "Recomendado para verificação moderna de integridade, com saída maior.",
+          "SHA-1": "Fraco para segurança criptográfica; útil aqui para comparação didática ou compatibilidade.",
+          "MD5": "Legado; não use como segurança criptográfica moderna."
+        };
+        els.hashList.innerHTML = names.map((name) => `
+          <div class="hash-row">
+            <strong>${escapeHtml(name)}</strong>
+            <div>
+              <code class="mono">${escapeHtml(state.hashes[name])}</code>
+              <p class="hash-note">${escapeHtml(notes[name] || "Identificador de integridade do conteúdo.")}</p>
+            </div>
+            <button type="button" class="secondary" data-copy-hash="${escapeAttribute(name)}">Copiar</button>
+          </div>
+        `).join("");
+        els.hashList.querySelectorAll("[data-copy-hash]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const name = button.getAttribute("data-copy-hash");
+            copyToClipboard(`${name}: ${state.hashes[name]}`, `${name} copiado.`);
+          });
+        });
+      }
+
+      function renderHashPanel() {
+        renderHashes();
+      }
+
+      function renderRisk() {
+        const risk = state.risk || classifySensitivity(state.metadata);
+        const className = risk.level === "alto" ? "high" : risk.level === "médio" ? "medium" : "low";
+        els.riskBox.innerHTML = `
+          <div class="risk-box ${className}">
+            <div class="risk-title">
+              <h3>Risco geral</h3>
+              <span class="badge ${className}">${escapeHtml(capitalize(risk.level))}</span>
+            </div>
+            <p>${escapeHtml(risk.justification || buildRiskJustification(risk.level, []))}</p>
+            <ul>${risk.phrases.map((phrase) => `<li>${escapeHtml(phrase)}</li>`).join("")}</ul>
+          </div>
+        `;
+      }
+
+      function renderTechnicalMetadata() {
+        renderMetadataTable();
+      }
+
+      function renderMetadataTable() {
+        const filter = state.currentFilter;
+        const rows = state.metadata.filter((item) => {
+          const dataType = classifyMetadataKind(item);
+          if (!filter) return true;
+          return `${item.category} ${item.field} ${item.value} ${item.source} ${item.sensitivity} ${dataType}`.toLowerCase().includes(filter);
+        });
+        els.metadataTableBody.innerHTML = rows.map((item) => {
+          const cls = item.sensitivity === "alto" ? "sens-high" : item.sensitivity === "médio" ? "sens-medium" : "";
+          const badge = item.sensitivity === "alto" ? "high" : item.sensitivity === "médio" ? "medium" : "low";
+          const dataType = classifyMetadataKind(item);
+          return `
+            <tr class="${cls}">
+              <td>${escapeHtml(item.category)}</td>
+              <td>${escapeHtml(item.field)}</td>
+              <td class="mono">${escapeHtml(item.value)}</td>
+              <td>${escapeHtml(item.source)}</td>
+              <td>${escapeHtml(dataType)}</td>
+              <td><span class="badge ${badge}">${escapeHtml(item.sensitivity)}</span></td>
+            </tr>
+          `;
+        }).join("") || `<tr><td colspan="6">Nenhum metadado corresponde ao filtro.</td></tr>`;
+      }
+
+      function renderEducationalExplanation() {
+        if (!els.educationalExplanation) return;
+        const cards = [
+          ["Metadados de autoria", "Podem revelar quem criou, editou, revisou ou exportou o arquivo. Em documentos compartilhados, isso pode expor nomes de usuários, autores de comentários e último editor."],
+          ["Metadados de tempo", "Podem revelar quando o arquivo foi criado, modificado, impresso, digitalizado ou exportado. Essas datas ajudam a reconstruir uma sequência de trabalho."],
+          ["Metadados de localização", "Fotos e alguns arquivos podem conter coordenadas GPS. Latitude, longitude, altitude e horário de GPS podem revelar onde e quando um registro foi feito."],
+          ["Metadados de dispositivo", "Imagens podem revelar câmera, celular, lente, modelo, software usado e, em alguns casos, números de série ou identificadores de equipamento."],
+          ["Documentos Office", "DOCX, XLSX e PPTX são pacotes ZIP com XML interno. Eles podem guardar autor, último editor, comentários, revisões, abas, notas, vínculos externos e propriedades personalizadas."],
+          ["PDF", "PDFs podem guardar título, autor, produtor, software criador, datas, formulários, anexos, scripts e objetos internos complexos. Uma extração simples pode não encontrar tudo."],
+          ["Hash", "Hash é uma impressão digital matemática do arquivo. Ele ajuda a verificar integridade e identificar alterações, mas não remove metadados e não criptografa o conteúdo."],
+          ["Limpeza de metadados", "Em imagens, regravar via canvas costuma remover EXIF/GPS/XMP, mas pode alterar compressão e qualidade. Em PDF e Office, a remoção pode ser incompleta e deve ser validada em nova análise."]
+        ];
+        els.educationalExplanation.innerHTML = cards.map(([title, text]) => `
+          <article class="explain-card">
+            <h3>${escapeHtml(title)}</h3>
+            <p>${escapeHtml(text)}</p>
+          </article>
+        `).join("");
+      }
+
+      function renderTechnicalSnippets() {
+        els.toggleTechnicalButton.disabled = !state.technicalSnippets.length;
+        els.toggleTechnicalButton.textContent = state.showTechnicalSnippets ? "Ocultar trechos técnicos internos" : "Mostrar trechos técnicos internos";
+        if (!state.technicalSnippets.length) {
+          els.technicalSnippets.classList.add("hidden");
+          els.technicalTextarea.value = "";
+          return;
+        }
+        if (!state.showTechnicalSnippets) {
+          els.technicalSnippets.classList.add("hidden");
+          return;
+        }
+        els.technicalSnippets.classList.remove("hidden");
+        els.technicalTextarea.value = state.technicalSnippets
+          .map((snippet) => `### ${snippet.title}\n${sanitizeTechnicalText(snippet.content)}`)
+          .join("\n\n");
+      }
+
+      function renderCleanupAvailability() {
+        const ext = state.file ? getExtension(state.file.name) : "";
+        els.cleanImageButton.disabled = !(state.file && ["jpg", "jpeg", "png"].includes(ext));
+        els.cleanOfficeButton.disabled = !(state.office && ["DOCX", "XLSX", "PPTX"].includes(state.office.kind));
+        if (state.basic && state.basic.family === "pdf") {
+          els.cleanOfficeStatus.textContent = "Nesta versão, a aplicação detecta metadados de PDF, mas não garante remoção segura. Para anonimização real, use ferramentas especializadas e valide o resultado em uma nova análise.";
+        } else if (!state.office) {
+          els.cleanOfficeStatus.textContent = "Disponível apenas para DOCX, XLSX e PPTX nesta versão experimental.";
+        } else {
+          els.cleanOfficeStatus.textContent = "Disponível para este arquivo Office. A remoção é experimental, pode gerar novas datas internas no momento da limpeza e exige nova análise do arquivo gerado.";
+        }
+        if (!["jpg", "jpeg", "png"].includes(ext)) {
+          els.cleanImageStatus.textContent = "Disponível para JPG/JPEG e PNG.";
+        }
+      }
+
+      function capitalize(value) {
+        return value.charAt(0).toUpperCase() + value.slice(1);
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function escapeAttribute(value) {
+        return escapeHtml(value).replace(/`/g, "&#096;");
+      }
+
+      function hashesAsText() {
+        return Object.entries(state.hashes).map(([name, value]) => `${name}: ${value}`).join("\n");
+      }
+
+      function metadataAsText() {
+        return state.metadata.map((item) => `${item.category}\t${item.field}\t${item.value}\t${item.source}\t${classifyMetadataKind(item)}\t${item.sensitivity}`).join("\n");
+      }
+
+      function fullReportAsText() {
+        const lines = [];
+        if (state.file) {
+          lines.push(`Arquivo: ${state.file.name}`);
+          lines.push(`Tamanho: ${formatBytes(state.file.size)}`);
+          lines.push(`Tipo provável: ${state.basic ? state.basic.probableType : "não analisado"}`);
+        }
+        lines.push("");
+        lines.push("Hashes:");
+        lines.push(hashesAsText());
+        lines.push("");
+        lines.push(`Risco geral: ${state.risk ? state.risk.level : "não classificado"}`);
+        if (state.risk) state.risk.phrases.forEach((phrase) => lines.push(`- ${phrase}`));
+        lines.push("");
+        lines.push("Metadados:");
+        lines.push(metadataAsText());
+        if (state.includeTechnicalInReport && state.technicalSnippets.length) {
+          lines.push("");
+          lines.push("Trechos técnicos internos mascarados:");
+          state.technicalSnippets.forEach((snippet) => {
+            lines.push(`### ${snippet.title}`);
+            lines.push(sanitizeTechnicalText(snippet.content));
+          });
+        }
+        return lines.join("\n");
+      }
+
+      function summaryReportAsText() {
+        const summary = buildSensitiveSummary(state.metadata);
+        const fieldValue = (groupTitle, label, fallback = "não detectado") => {
+          const group = summary.groups.find((item) => item.title === groupTitle);
+          const field = group && group.fields.find((item) => item.label === label);
+          if (!field || !field.matches.length) return fallback;
+          return displayValuesForReportField(field).join("; ");
+        };
+        const lines = [];
+        lines.push("Relatório resumido de metadados");
+        lines.push(`Arquivo: ${state.file ? state.file.name : "não informado"}`);
+        lines.push(`Tipo: ${state.basic ? state.basic.probableType : "não informado"}`);
+        lines.push(`Tamanho: ${state.file ? formatBytes(state.file.size) : "não informado"}`);
+        lines.push(`Risco geral: ${state.risk ? capitalize(state.risk.level) : "não classificado"}`);
+        if (state.risk && state.risk.justification) lines.push(`Justificativa: ${state.risk.justification}`);
+        lines.push("");
+        lines.push("1. Identidade");
+        lines.push(`- Autor: ${fieldValue("Identidade", "Autor/criador")}`);
+        lines.push(`- Último editor: ${fieldValue("Identidade", "Último editor")}`);
+        lines.push(`- E-mail: ${fieldValue("Identidade", "E-mail detectado")}`);
+        lines.push("");
+        lines.push("2. Tempo");
+        lines.push(`- Data interna de criação: ${fieldValue("Tempo", "Data interna de criação")}`);
+        lines.push(`- Data interna de modificação: ${fieldValue("Tempo", "Data interna de modificação")}`);
+        lines.push(`- Última modificação do arquivo no sistema: ${fieldValue("Tempo", "Última modificação do arquivo no sistema", state.file ? formatDate(state.file.lastModified) : "não informado")}`);
+        lines.push("");
+        lines.push("3. Localização");
+        lines.push(`- GPS: ${fieldValue("Localização", "GPS")}`);
+        const latLon = [fieldValue("Localização", "Latitude", ""), fieldValue("Localização", "Longitude", "")].filter(Boolean).join(" / ");
+        lines.push(`- Latitude/longitude: ${latLon || "não detectado"}`);
+        lines.push("");
+        lines.push("4. Origem técnica");
+        lines.push(`- Software: ${fieldValue("Origem técnica", "Software criador")}`);
+        lines.push(`- Produtor: ${fieldValue("Origem técnica", "Produtor")}`);
+        lines.push(`- Dispositivo: ${[fieldValue("Origem técnica", "Dispositivo", ""), fieldValue("Origem técnica", "Modelo do dispositivo", "")].filter(Boolean).join(" / ") || "não detectado"}`);
+        lines.push("");
+        lines.push("5. Riscos adicionais");
+        lines.push(`- Comentários: ${fieldValue("Riscos adicionais", "Comentários")}`);
+        lines.push(`- Revisões: ${fieldValue("Riscos adicionais", "Revisões/histórico")}`);
+        lines.push(`- Macros: ${fieldValue("Riscos adicionais", "Macros/VBA")}`);
+        lines.push(`- Links externos: ${fieldValue("Riscos adicionais", "Links externos")}`);
+        lines.push(`- Conexões externas: ${fieldValue("Riscos adicionais", "Conexões externas")}`);
+        lines.push("");
+        lines.push("Hashes:");
+        if (state.hashes["SHA-256"]) lines.push(`SHA-256: ${state.hashes["SHA-256"]}`);
+        if (state.hashes["SHA-512"]) lines.push(`SHA-512: ${state.hashes["SHA-512"]}`);
+        if (state.hashes["SHA-1"]) lines.push(`SHA-1: ${state.hashes["SHA-1"]}`);
+        if (state.hashes.MD5) lines.push(`MD5: ${state.hashes.MD5}`);
+        lines.push("");
+        lines.push("Observação:");
+        lines.push("A análise foi feita localmente no navegador. A ausência de metadados detectados não garante ausência total de informações ocultas.");
+        return lines.join("\n");
+      }
+
+      function displayValuesForReportField(field) {
+        if (field.label === "GPS" && field.status === "indício técnico") return ["Indício de bloco GPS presente; coordenadas não foram extraídas"];
+        if (field.label === "GPS" && field.matches.some(isGpsCoordinateSignal)) return ["Coordenadas GPS encontradas"];
+        return field.values.filter(uniqueFilter).slice(0, 6);
+      }
+
+      function copySummaryReport() {
+        return copyToClipboard(summaryReportAsText(), "Relatório resumido copiado.");
+      }
+
+      function exportDidacticTXT() {
+        downloadBlob(new Blob([summaryReportAsText()], { type: "text/plain;charset=utf-8" }), safeBaseName() + "_relatorio_didatico.txt");
+      }
+
+      async function copyToClipboard(text, successMessage) {
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            const textarea = document.createElement("textarea");
+            textarea.value = text;
+            textarea.style.position = "fixed";
+            textarea.style.left = "-9999px";
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            document.execCommand("copy");
+            textarea.remove();
+          }
+          els.statusLine.textContent = successMessage;
+        } catch (error) {
+          els.statusLine.textContent = `Não foi possível copiar: ${error.message}`;
+        }
+      }
+
+      function exportJSON() {
+        const payload = {
+          generatedAt: new Date().toISOString(),
+          localOnly: true,
+          file: state.file ? {
+            name: state.file.name,
+            size: state.file.size,
+            type: state.file.type,
+            lastModified: state.file.lastModified,
+            signature: state.basic
+          } : null,
+          hashes: state.hashes,
+          risk: state.risk,
+          metadata: state.metadata.map((item) => ({ ...item, dataType: classifyMetadataKind(item) }))
+        };
+        downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" }), safeBaseName() + "_metadados.json");
+      }
+
+      function exportCSV() {
+        const headers = ["categoria", "campo", "valor", "origem", "tipo_de_dado", "sensibilidade"];
+        const rows = state.metadata.map((item) => [item.category, item.field, item.value, item.source, classifyMetadataKind(item), item.sensitivity]);
+        const csv = [headers, ...rows].map((row) => row.map(csvEscape).join(";")).join("\r\n");
+        downloadBlob(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }), safeBaseName() + "_metadados.csv");
+      }
+
+      function csvEscape(value) {
+        return `"${String(value).replace(/"/g, '""')}"`;
+      }
+
+      function safeBaseName() {
+        if (!state.file) return "analise";
+        return state.file.name.replace(/\.[^.]+$/, "").replace(/[^\w.-]+/g, "_").slice(0, 80) || "analise";
+      }
+
+      function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+      function pushTechnicalSnippet(title, content) {
+        if (!content) return;
+        state.technicalSnippets.push({ title, content: String(content).slice(0, 2500) });
+      }
+
+      function sanitizeTechnicalText(text) {
+        return String(text || "")
+          .slice(0, 2500)
+          .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi, "[e-mail ocultado]")
+          .replace(/c:\\users\\[^\\\s"'<>]+/ig, "C:\\Users\\********")
+          .replace(/\/users\/[^\/\s"'<>]+/ig, "/Users/********")
+          .replace(/\/home\/[^\/\s"'<>]+/ig, "/home/********")
+          .replace(/([-+]?\d{1,2}\.\d{4,})\s*,\s*([-+]?\d{1,3}\.\d{4,})/g, "[coordenadas ocultadas]")
+          .replace(/<GPSLatitude>[\s\S]*?<\/GPSLatitude>/gi, "<GPSLatitude>[ocultado]</GPSLatitude>")
+          .replace(/<GPSLongitude>[\s\S]*?<\/GPSLongitude>/gi, "<GPSLongitude>[ocultado]</GPSLongitude>");
+      }
+
+      async function cleanImageViaCanvas() {
+        if (!state.file) return;
+        els.cleanImageStatus.textContent = "Gerando imagem limpa localmente...";
+        try {
+          const img = await loadImageFromFile(state.file);
+          const canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0);
+          const mime = els.cleanImageFormat.value;
+          const quality = Math.max(0.1, Math.min(1, Number(els.jpegQuality.value) || 0.92));
+          const blob = await canvasToBlob(canvas, mime, quality);
+          const cleanBuffer = await blob.arrayBuffer();
+          const cleanHashes = await calculateHashes(cleanBuffer);
+          const extension = mime === "image/jpeg" ? "jpg" : "png";
+          downloadBlob(blob, `${safeBaseName()}_limpo.${extension}`);
+          const changed = cleanHashes["SHA-256"] !== state.hashes["SHA-256"] ? "diferente do original" : "igual ao original";
+          els.cleanImageStatus.textContent = `Imagem limpa gerada. SHA-256 novo: ${cleanHashes["SHA-256"]} (${changed}).`;
+        } catch (error) {
+          els.cleanImageStatus.textContent = `Não foi possível limpar a imagem: ${error.message}`;
+        }
+      }
+
+      function loadImageFromFile(file) {
+        return new Promise((resolve, reject) => {
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          img.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(img);
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error("o navegador não conseguiu decodificar a imagem"));
+          };
+          img.src = url;
+        });
+      }
+
+      function canvasToBlob(canvas, mime, quality) {
+        return new Promise((resolve, reject) => {
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error("canvas.toBlob retornou vazio"));
+          }, mime, quality);
+        });
+      }
+
+      async function cleanOfficeMetadataExperimental() {
+        if (!state.office) return;
+        els.cleanOfficeStatus.textContent = "Reescrevendo propriedades Office de forma experimental...";
+        try {
+          const replacements = buildOfficeSanitizedProperties(state.office.kind);
+          const cleaned = buildZipWithReplacements(state.office.entries, state.office.arrayBuffer, replacements);
+          const ext = getExtension(state.file.name);
+          downloadBlob(new Blob([cleaned], { type: state.file.type || "application/octet-stream" }), `${safeBaseName()}_limpo_experimental.${ext}`);
+          const cleanHashes = await calculateHashes(cleaned.buffer.slice(cleaned.byteOffset, cleaned.byteOffset + cleaned.byteLength));
+          els.cleanOfficeStatus.textContent = `Arquivo Office experimental gerado. SHA-256 novo: ${cleanHashes["SHA-256"]}. Isso não garante anonimização completa; comentários, revisões, vínculos externos, nomes internos e conteúdo podem permanecer. O arquivo pode receber novas datas internas geradas agora. Valide o resultado em nova análise.`;
+        } catch (error) {
+          els.cleanOfficeStatus.textContent = `Não foi possível gerar o arquivo Office limpo: ${error.message}`;
+        }
+      }
+
+      function buildOfficeSanitizedProperties(kind) {
+        const now = new Date().toISOString();
+        const core = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title></dc:title><dc:subject></dc:subject><dc:creator></dc:creator><cp:keywords></cp:keywords><dc:description></dc:description><cp:lastModifiedBy></cp:lastModifiedBy><cp:revision>1</cp:revision><dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified></cp:coreProperties>`;
+        const appName = kind === "DOCX" ? "Microsoft Word" : kind === "XLSX" ? "Microsoft Excel" : "Microsoft PowerPoint";
+        const app = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>${appName}</Application><Company></Company><Manager></Manager></Properties>`;
+        const custom = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"></Properties>`;
+        return new Map([
+          ["docProps/core.xml", textEncoder.encode(core)],
+          ["docProps/app.xml", textEncoder.encode(app)],
+          ["docProps/custom.xml", textEncoder.encode(custom)]
+        ]);
+      }
+
+      function buildZipWithReplacements(entries, arrayBuffer, replacements) {
+        const original = new Uint8Array(arrayBuffer);
+        const localParts = [];
+        const centralParts = [];
+        let offset = 0;
+        const centralRecords = [];
+
+        for (const entry of entries) {
+          const replacement = replacements.get(entry.name);
+          const nameBytes = entry.nameBytes;
+          let method = entry.method;
+          let crc = entry.crc32;
+          let compressedData;
+          let uncompressedSize = entry.uncompressedSize;
+          let compressedSize = entry.compressedSize;
+          let modTime = entry.modTime;
+          let modDate = entry.modDate;
+          let flags = entry.flags & ~0x0008;
+          if (replacement) {
+            method = 0;
+            compressedData = replacement;
+            uncompressedSize = replacement.length;
+            compressedSize = replacement.length;
+            crc = crc32(replacement);
+            const dos = dateToDos(new Date());
+            modTime = dos.time;
+            modDate = dos.date;
+            flags = flags | 0x0800;
+          } else {
+            compressedData = original.subarray(entry.dataStart, entry.dataStart + entry.compressedSize);
+          }
+
+          const local = new Uint8Array(30 + nameBytes.length + compressedData.length);
+          const localView = new DataView(local.buffer);
+          localView.setUint32(0, 0x04034b50, true);
+          localView.setUint16(4, entry.versionNeeded || 20, true);
+          localView.setUint16(6, flags, true);
+          localView.setUint16(8, method, true);
+          localView.setUint16(10, modTime, true);
+          localView.setUint16(12, modDate, true);
+          localView.setUint32(14, crc >>> 0, true);
+          localView.setUint32(18, compressedSize >>> 0, true);
+          localView.setUint32(22, uncompressedSize >>> 0, true);
+          localView.setUint16(26, nameBytes.length, true);
+          localView.setUint16(28, 0, true);
+          local.set(nameBytes, 30);
+          local.set(compressedData, 30 + nameBytes.length);
+          localParts.push(local);
+          centralRecords.push({ entry, nameBytes, method, crc, compressedSize, uncompressedSize, modTime, modDate, flags, offset });
+          offset += local.length;
+        }
+
+        const centralStart = offset;
+        for (const record of centralRecords) {
+          const central = new Uint8Array(46 + record.nameBytes.length);
+          const view = new DataView(central.buffer);
+          view.setUint32(0, 0x02014b50, true);
+          view.setUint16(4, record.entry.versionMadeBy || 20, true);
+          view.setUint16(6, record.entry.versionNeeded || 20, true);
+          view.setUint16(8, record.flags, true);
+          view.setUint16(10, record.method, true);
+          view.setUint16(12, record.modTime, true);
+          view.setUint16(14, record.modDate, true);
+          view.setUint32(16, record.crc >>> 0, true);
+          view.setUint32(20, record.compressedSize >>> 0, true);
+          view.setUint32(24, record.uncompressedSize >>> 0, true);
+          view.setUint16(28, record.nameBytes.length, true);
+          view.setUint16(30, 0, true);
+          view.setUint16(32, 0, true);
+          view.setUint16(34, 0, true);
+          view.setUint16(36, record.entry.internalAttrs || 0, true);
+          view.setUint32(38, record.entry.externalAttrs || 0, true);
+          view.setUint32(42, record.offset >>> 0, true);
+          central.set(record.nameBytes, 46);
+          centralParts.push(central);
+          offset += central.length;
+        }
+        const centralSize = offset - centralStart;
+        const eocd = new Uint8Array(22);
+        const eocdView = new DataView(eocd.buffer);
+        eocdView.setUint32(0, 0x06054b50, true);
+        eocdView.setUint16(8, entries.length, true);
+        eocdView.setUint16(10, entries.length, true);
+        eocdView.setUint32(12, centralSize >>> 0, true);
+        eocdView.setUint32(16, centralStart >>> 0, true);
+        return concatUint8Arrays([...localParts, ...centralParts, eocd]);
+      }
+
+      function dateToDos(date) {
+        const year = Math.max(1980, date.getFullYear());
+        const dosDate = ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+        const dosTime = (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2);
+        return { date: dosDate, time: dosTime };
+      }
+
+      function concatUint8Arrays(parts) {
+        const total = parts.reduce((sum, part) => sum + part.length, 0);
+        const out = new Uint8Array(total);
+        let offset = 0;
+        parts.forEach((part) => {
+          out.set(part, offset);
+          offset += part.length;
+        });
+        return out;
+      }
+
+      function parseZipEntries(arrayBuffer) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const view = new DataView(arrayBuffer);
+        const maxSearch = Math.max(0, bytes.length - 0x10000 - 22);
+        let eocdOffset = -1;
+        for (let i = bytes.length - 22; i >= maxSearch; i--) {
+          if (view.getUint32(i, true) === 0x06054b50) {
+            eocdOffset = i;
+            break;
+          }
+        }
+        if (eocdOffset < 0) throw new Error("diretório central ZIP não encontrado");
+        const totalEntries = view.getUint16(eocdOffset + 10, true);
+        const centralSize = view.getUint32(eocdOffset + 12, true);
+        const centralOffset = view.getUint32(eocdOffset + 16, true);
+        if (totalEntries === 0xffff || centralOffset === 0xffffffff || centralSize === 0xffffffff) {
+          throw new Error("ZIP64 não suportado nesta versão");
+        }
+        const entries = [];
+        let offset = centralOffset;
+        for (let i = 0; i < totalEntries; i++) {
+          if (offset + 46 > bytes.length || view.getUint32(offset, true) !== 0x02014b50) break;
+          const versionMadeBy = view.getUint16(offset + 4, true);
+          const versionNeeded = view.getUint16(offset + 6, true);
+          const flags = view.getUint16(offset + 8, true);
+          const method = view.getUint16(offset + 10, true);
+          const modTime = view.getUint16(offset + 12, true);
+          const modDate = view.getUint16(offset + 14, true);
+          const crc = view.getUint32(offset + 16, true);
+          const compressedSize = view.getUint32(offset + 20, true);
+          const uncompressedSize = view.getUint32(offset + 24, true);
+          const nameLength = view.getUint16(offset + 28, true);
+          const extraLength = view.getUint16(offset + 30, true);
+          const commentLength = view.getUint16(offset + 32, true);
+          const internalAttrs = view.getUint16(offset + 36, true);
+          const externalAttrs = view.getUint32(offset + 38, true);
+          const localHeaderOffset = view.getUint32(offset + 42, true);
+          const nameStart = offset + 46;
+          const nameBytes = bytes.slice(nameStart, nameStart + nameLength);
+          const name = decodeZipName(nameBytes, flags).replace(/\\/g, "/");
+          if (localHeaderOffset + 30 > bytes.length || view.getUint32(localHeaderOffset, true) !== 0x04034b50) throw new Error(`cabeçalho local inválido para ${name}`);
+          const localNameLength = view.getUint16(localHeaderOffset + 26, true);
+          const localExtraLength = view.getUint16(localHeaderOffset + 28, true);
+          const dataStart = localHeaderOffset + 30 + localNameLength + localExtraLength;
+          entries.push({
+            name,
+            nameBytes,
+            flags,
+            method,
+            modTime,
+            modDate,
+            crc32: crc,
+            compressedSize,
+            uncompressedSize,
+            localHeaderOffset,
+            dataStart,
+            versionMadeBy,
+            versionNeeded,
+            internalAttrs,
+            externalAttrs
+          });
+          offset += 46 + nameLength + extraLength + commentLength;
+        }
+        return entries;
+      }
+
+      function decodeZipName(bytes, flags) {
+        if (flags & 0x0800) return textDecoderUtf8.decode(bytes);
+        return textDecoderUtf8.decode(bytes);
+      }
+
+      async function readZipTextIfExists(entries, name) {
+        const entry = entries.find((item) => item.name === name);
+        return entry ? readZipEntryText(entry) : "";
+      }
+
+      async function readZipEntryText(entry) {
+        const data = await readZipEntryBytes(entry);
+        return textDecoderUtf8.decode(data);
+      }
+
+      async function readZipEntryBytes(entry) {
+        const bytes = new Uint8Array(state.arrayBuffer);
+        const compressed = bytes.subarray(entry.dataStart, entry.dataStart + entry.compressedSize);
+        if (entry.method === 0) return compressed;
+        if (entry.method === 8) return inflateRawSync(compressed);
+        throw new Error(`método ZIP ${entry.method} não suportado para ${entry.name}`);
+      }
+
+      // Implementação local mínima de DEFLATE/INFLATE para ler XML comprimido em PNG zTXt e Office ZIP. Não é biblioteca externa.
+      function inflateZlibSync(bytes) {
+        if (bytes.length < 6) throw new Error("stream zlib muito curto");
+        return inflateRawSync(bytes.subarray(2, bytes.length - 4));
+      }
+
+      function inflateRawSync(input) {
+        const reader = new BitReader(input);
+        const output = [];
+        let finalBlock = false;
+        while (!finalBlock) {
+          finalBlock = reader.readBits(1) === 1;
+          const type = reader.readBits(2);
+          if (type === 0) {
+            reader.alignByte();
+            const len = reader.readUint16LE();
+            const nlen = reader.readUint16LE();
+            if (((len ^ 0xffff) & 0xffff) !== nlen) throw new Error("bloco armazenado inválido");
+            for (let i = 0; i < len; i++) output.push(reader.readByte());
+          } else if (type === 1 || type === 2) {
+            const tables = type === 1 ? fixedHuffmanTables() : dynamicHuffmanTables(reader);
+            inflateCompressedBlock(reader, output, tables.literalLength, tables.distance);
+          } else {
+            throw new Error("tipo de bloco DEFLATE reservado");
+          }
+        }
+        return Uint8Array.from(output);
+      }
+
+      class BitReader {
+        constructor(bytes) {
+          this.bytes = bytes;
+          this.pos = 0;
+          this.bitBuffer = 0;
+          this.bitCount = 0;
+        }
+        readBits(count) {
+          while (this.bitCount < count) {
+            if (this.pos >= this.bytes.length) throw new Error("fim inesperado do stream DEFLATE");
+            this.bitBuffer |= this.bytes[this.pos++] << this.bitCount;
+            this.bitCount += 8;
+          }
+          const value = this.bitBuffer & ((1 << count) - 1);
+          this.bitBuffer >>>= count;
+          this.bitCount -= count;
+          return value;
+        }
+        alignByte() {
+          this.bitBuffer = 0;
+          this.bitCount = 0;
+        }
+        readByte() {
+          if (this.bitCount === 0) {
+            if (this.pos >= this.bytes.length) throw new Error("fim inesperado do stream");
+            return this.bytes[this.pos++];
+          }
+          return this.readBits(8);
+        }
+        readUint16LE() {
+          const low = this.readByte();
+          const high = this.readByte();
+          return low | (high << 8);
+        }
+      }
+
+      function buildHuffman(lengths) {
+        const maxBits = Math.max(...lengths, 0);
+        const counts = new Array(maxBits + 1).fill(0);
+        lengths.forEach((len) => {
+          if (len) counts[len]++;
+        });
+        const nextCode = new Array(maxBits + 1).fill(0);
+        let code = 0;
+        for (let bits = 1; bits <= maxBits; bits++) {
+          code = (code + (counts[bits - 1] || 0)) << 1;
+          nextCode[bits] = code;
+        }
+        const root = {};
+        lengths.forEach((len, symbol) => {
+          if (len) {
+            const assigned = nextCode[len]++;
+            let node = root;
+            for (let bitIndex = len - 1; bitIndex >= 0; bitIndex--) {
+              const bit = (assigned >>> bitIndex) & 1;
+              if (!node[bit]) node[bit] = {};
+              node = node[bit];
+            }
+            node.symbol = symbol;
+          }
+        });
+        return { root, maxBits };
+      }
+
+      function decodeHuffman(reader, huffman) {
+        let node = huffman.root;
+        for (let len = 1; len <= huffman.maxBits; len++) {
+          const bit = reader.readBits(1);
+          node = node && node[bit];
+          if (!node) break;
+          if (node.symbol !== undefined) return node.symbol;
+        }
+        throw new Error("código Huffman inválido");
+      }
+
+      let fixedTablesCache = null;
+      function fixedHuffmanTables() {
+        if (fixedTablesCache) return fixedTablesCache;
+        const litLen = new Array(288);
+        for (let i = 0; i <= 143; i++) litLen[i] = 8;
+        for (let i = 144; i <= 255; i++) litLen[i] = 9;
+        for (let i = 256; i <= 279; i++) litLen[i] = 7;
+        for (let i = 280; i <= 287; i++) litLen[i] = 8;
+        const dist = new Array(32).fill(5);
+        fixedTablesCache = { literalLength: buildHuffman(litLen), distance: buildHuffman(dist) };
+        return fixedTablesCache;
+      }
+
+      function dynamicHuffmanTables(reader) {
+        const hlit = reader.readBits(5) + 257;
+        const hdist = reader.readBits(5) + 1;
+        const hclen = reader.readBits(4) + 4;
+        const order = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+        const codeLengths = new Array(19).fill(0);
+        for (let i = 0; i < hclen; i++) codeLengths[order[i]] = reader.readBits(3);
+        const codeLengthTree = buildHuffman(codeLengths);
+        const lengths = [];
+        while (lengths.length < hlit + hdist) {
+          const symbol = decodeHuffman(reader, codeLengthTree);
+          if (symbol <= 15) lengths.push(symbol);
+          else if (symbol === 16) {
+            const repeat = reader.readBits(2) + 3;
+            const previous = lengths[lengths.length - 1] || 0;
+            for (let i = 0; i < repeat; i++) lengths.push(previous);
+          } else if (symbol === 17) {
+            const repeat = reader.readBits(3) + 3;
+            for (let i = 0; i < repeat; i++) lengths.push(0);
+          } else if (symbol === 18) {
+            const repeat = reader.readBits(7) + 11;
+            for (let i = 0; i < repeat; i++) lengths.push(0);
+          }
+        }
+        const litLenLengths = lengths.slice(0, hlit);
+        const distLengths = lengths.slice(hlit, hlit + hdist);
+        return {
+          literalLength: buildHuffman(litLenLengths),
+          distance: buildHuffman(distLengths)
+        };
+      }
+
+      const LENGTH_BASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258];
+      const LENGTH_EXTRA = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
+      const DIST_BASE = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577];
+      const DIST_EXTRA = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+
+      function inflateCompressedBlock(reader, output, literalLengthTree, distanceTree) {
+        while (true) {
+          const symbol = decodeHuffman(reader, literalLengthTree);
+          if (symbol < 256) {
+            output.push(symbol);
+          } else if (symbol === 256) {
+            return;
+          } else {
+            const lengthIndex = symbol - 257;
+            if (lengthIndex < 0 || lengthIndex >= LENGTH_BASE.length) throw new Error("comprimento DEFLATE inválido");
+            let length = LENGTH_BASE[lengthIndex] + (LENGTH_EXTRA[lengthIndex] ? reader.readBits(LENGTH_EXTRA[lengthIndex]) : 0);
+            const distSymbol = decodeHuffman(reader, distanceTree);
+            if (distSymbol >= DIST_BASE.length) throw new Error("distância DEFLATE inválida");
+            const distance = DIST_BASE[distSymbol] + (DIST_EXTRA[distSymbol] ? reader.readBits(DIST_EXTRA[distSymbol]) : 0);
+            if (distance <= 0 || distance > output.length) throw new Error("referência DEFLATE fora do histórico");
+            while (length--) output.push(output[output.length - distance]);
+          }
+        }
+      }
+
+      let crcTable = null;
+      function crc32(bytes) {
+        if (!crcTable) {
+          crcTable = new Uint32Array(256);
+          for (let n = 0; n < 256; n++) {
+            let c = n;
+            for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+            crcTable[n] = c >>> 0;
+          }
+        }
+        let crc = 0xffffffff;
+        for (let i = 0; i < bytes.length; i++) crc = crcTable[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
+        return (crc ^ 0xffffffff) >>> 0;
+      }
+
+      function renderCleanupNote() {
+        return "";
+      }
+
+      window.addEventListener("beforeunload", () => {
+        if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+      });
+    })();
+  </script>
+</body>
+</html>
