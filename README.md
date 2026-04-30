@@ -498,7 +498,26 @@ Recomendado:
 
 ## Estrutura do projeto
 
-O projeto foi organizado como arquivo único:
+A aplicação em si foi organizada como arquivo único, com documentos de apoio separados:
 
 ```text
 analisador-local-metadados-hash.html
+README.md
+LICENSE
+AGENTS.md
+docs/PROJECT_STATE.md
+docs/HANDOFF.md
+```
+
+---
+
+## Arquitetura de contexto do projeto
+
+Este repositório usa alguns arquivos para separar documentação para pessoas e contexto para ferramentas de IA:
+
+- `README.md`: guia humano do projeto. Explica o que é a aplicação, como usar e quais são suas limitações.
+- `AGENTS.md`: regras permanentes para agentes de IA, como Codex, OpenCode e assistentes parecidos. É o manual de conduta técnica desses agentes.
+- `docs/PROJECT_STATE.md`: estado operacional atual do projeto. Guarda o que está em vigor agora, pendências, limitações, testes feitos e próximos passos.
+- `docs/HANDOFF.md`: passagem de contexto para outro chat, outro agente ou outra sessão. Serve para alguém continuar o trabalho sem depender da conversa anterior.
+
+Em termos simples: o README é para pessoas entenderem o projeto; o AGENTS orienta agentes; o PROJECT_STATE guarda o estado vivo; e o HANDOFF ajuda a transferir o projeto para uma nova conversa.
