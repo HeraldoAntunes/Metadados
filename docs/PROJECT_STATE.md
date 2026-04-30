@@ -46,6 +46,7 @@ A aplicação deve funcionar diretamente no navegador, sem envio de arquivos par
 - `docs/HANDOFF.md` é documento de transferência de contexto, não diário operacional.
 - `AGENTS.md` contém regras estáveis e não deve ser alterado automaticamente no futuro sem pedido explícito.
 - O app permanece como arquivo único, sem servidor, sem login, sem internet obrigatória, sem CDN e sem dependências externas.
+- Projetos pequenos e médios neste repositório devem usar arquitetura suficiente: evitar overengineering, camadas e padrões formais sem necessidade real documentada.
 - Nenhum arquivo analisado pelo usuário deve ser enviado para servidor.
 - A remoção de metadados é experimental e não deve ser apresentada como anonimização garantida.
 - A ausência de metadados detectados não deve ser documentada como prova de ausência total de metadados.
@@ -71,6 +72,7 @@ A aplicação deve funcionar diretamente no navegador, sem envio de arquivos par
 - Confirmação de que não existiam `AGENTS.md`, `docs/HANDOFF.md`, `docs/PROJECT_STATE.md`, `docs/` ou `.gitignore` antes da criação desta arquitetura.
 - Verificação posterior com `git status --short`: alterações restritas a `README.md`, `AGENTS.md` e `docs/`.
 - Verificação posterior com `git diff --check`: sem erros de whitespace; houve apenas aviso de conversão LF/CRLF do `README.md` no Windows.
+- Leitura de `README.md`, `AGENTS.md`, `docs/PROJECT_STATE.md` e `docs/HANDOFF.md` antes de atualizar a diretriz permanente de simplicidade arquitetural.
 
 ## Testes Pendentes
 

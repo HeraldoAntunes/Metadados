@@ -50,6 +50,31 @@ Este projeto é uma aplicação web didática de arquivo único:
 
 A aplicação deve continuar funcionando diretamente no navegador, sem servidor, sem build, sem dependências externas e sem CDN, salvo decisão explícita em contrário.
 
+## Simplicidade Arquitetural
+
+Use arquitetura suficiente para o problema real atual. Este projeto deve priorizar funcionalidade, clareza, manutenção simples e baixo custo de contexto para pessoas e agentes de IA.
+
+- Prefira a solução mais simples que resolva o problema atual.
+- Preserve o funcionamento local, direto e sem dependências desnecessárias.
+- Não crie camadas, interfaces, DTOs, mappers, factories, services, use cases ou patterns apenas por convenção.
+- Não introduza Clean Architecture completa, arquitetura hexagonal, CQRS, event sourcing, microservices, DDD tático completo, repository pattern formal ou dependency inversion sem justificativa explícita.
+- Separe responsabilidades de forma simples, sem multiplicar arquivos desnecessariamente.
+- Prefira encapsulamento simples antes de interfaces formais.
+- Não crie interface para algo que tem apenas uma implementação, salvo necessidade real documentada.
+- Não reorganize o projeto inteiro sem pedido explícito.
+- Comece simples e abstraia apenas quando houver dor concreta.
+- Considere que cada arquivo, camada e indireção aumenta custo de leitura, revisão e contexto para agentes de IA.
+- Mantenha lógica de negócio separada de detalhes de interface, DOM, HTTP, armazenamento local, arquivos ou integrações quando isso for aplicável, mas sem cerimônia arquitetural desnecessária.
+
+Antes de criar nova abstração, responda:
+
+- Esta abstração resolve um problema real já existente?
+- Há pelo menos dois usos concretos?
+- Ela reduz duplicação ou só espalha código?
+- Ela facilita teste e manutenção ou aumenta navegação?
+- O custo em arquivos, imports e contexto compensa?
+- Se a resposta for duvidosa, mantenha simples.
+
 ## Regras de Trabalho
 
 - Não altere arquivos de código em tarefas documentais, exceto quando houver referência quebrada que exija ajuste mínimo.

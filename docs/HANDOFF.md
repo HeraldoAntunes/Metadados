@@ -41,6 +41,7 @@ Manter uma aplicação didática que analisa localmente metadados, assinaturas d
 - `docs/HANDOFF.md` fica reservado para transferência de contexto entre chats, agentes ou sessões.
 - `AGENTS.md` é guia permanente e não deve ser editado automaticamente no futuro sem pedido explícito do usuário.
 - A hierarquia de contexto definida é: instrução explícita do usuário, `AGENTS.md`, `docs/PROJECT_STATE.md`, `docs/HANDOFF.md`, `README.md` e código real.
+- O projeto deve evitar overengineering: usar arquitetura suficiente, começar simples e só criar abstrações quando houver necessidade real documentada.
 - O projeto deve permanecer livre de segredos, dados pessoais, documentos reais sensíveis, logs e arquivos temporários.
 - A documentação deve evitar prometer anonimização, perícia digital completa ou ausência total de metadados quando a ferramenta apenas não detecta algo.
 
@@ -74,4 +75,4 @@ Revisar o diff documental e, depois, abrir `analisador-local-metadados-hash.html
 2. Leia este `docs/HANDOFF.md` se estiver retomando de outra sessão ou preparando nova passagem.
 3. Rode `git status --short` e preserve alterações existentes do usuário.
 4. Para mudanças documentais, mantenha `docs/PROJECT_STATE.md` como memória viva e use este handoff apenas para transferência.
-5. Para mudanças no app, inspecione o trecho relevante de `analisador-local-metadados-hash.html`, valide manualmente quando possível e atualize a documentação afetada.
+5. Para mudanças no app, evite camadas e padrões formais sem necessidade real; inspecione o trecho relevante de `analisador-local-metadados-hash.html`, valide manualmente quando possível e atualize a documentação afetada.
