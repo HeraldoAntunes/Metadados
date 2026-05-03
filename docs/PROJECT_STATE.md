@@ -1,6 +1,6 @@
 # Estado Operacional do Projeto
 
-Última atualização: 2026-04-30, America/Fortaleza.
+Última atualização: 2026-05-03, America/Fortaleza.
 
 ## Objetivo do Projeto
 
@@ -16,6 +16,7 @@ A aplicação deve funcionar diretamente no navegador, sem envio de arquivos par
 - Não há sistema de build, servidor, pacote de dependências, testes automatizados ou CI configurados.
 - Não havia `AGENTS.md`, `docs/HANDOFF.md`, `docs/PROJECT_STATE.md`, `docs/` ou `.gitignore` antes da atualização de arquitetura de contexto.
 - A arquitetura documental para agentes foi criada nesta atualização.
+- `CLAUDE.md` foi criado como adaptador para Claude Code / Claude Desktop, apontando para `AGENTS.md` como fonte principal de regras compartilhadas.
 - O arquivo funcional `analisador-local-metadados-hash.html` não foi alterado nesta atualização documental.
 
 ## Estrutura Real do Repositório
@@ -23,6 +24,7 @@ A aplicação deve funcionar diretamente no navegador, sem envio de arquivos par
 ```text
 .
 ├── AGENTS.md
+├── CLAUDE.md
 ├── LICENSE
 ├── README.md
 ├── analisador-local-metadados-hash.html
@@ -36,6 +38,7 @@ A aplicação deve funcionar diretamente no navegador, sem envio de arquivos par
 - `analisador-local-metadados-hash.html`: aplicação completa em HTML, CSS e JavaScript. Contém a interface, leitura local de arquivos, extração de metadados, cálculo de hashes, classificação de sensibilidade, exportações e rotinas experimentais de limpeza.
 - `README.md`: documentação humana do projeto, objetivos, recursos, limitações, modo de uso e arquitetura de contexto.
 - `AGENTS.md`: guia permanente para agentes de IA com hierarquia de contexto, rotinas de leitura e encerramento, segurança, Git e conduta.
+- `CLAUDE.md`: adaptador para Claude Code / Claude Desktop. Referencia `AGENTS.md` como fonte principal e registra apenas orientações específicas para Claude.
 - `docs/PROJECT_STATE.md`: memória operacional viva do projeto.
 - `docs/HANDOFF.md`: documento autocontido de passagem de contexto para outro chat, agente ou sessão.
 - `LICENSE`: licença MIT.
@@ -45,6 +48,7 @@ A aplicação deve funcionar diretamente no navegador, sem envio de arquivos par
 - `docs/PROJECT_STATE.md` é a memória operacional contínua do projeto.
 - `docs/HANDOFF.md` é documento de transferência de contexto, não diário operacional.
 - `AGENTS.md` contém regras estáveis e não deve ser alterado automaticamente no futuro sem pedido explícito.
+- `CLAUDE.md` deve permanecer como adaptador curto para Claude e não deve duplicar integralmente o conteúdo de `AGENTS.md`.
 - O app permanece como arquivo único, sem servidor, sem login, sem internet obrigatória, sem CDN e sem dependências externas.
 - Projetos pequenos e médios neste repositório devem usar arquitetura suficiente: evitar overengineering, camadas e padrões formais sem necessidade real documentada.
 - Nenhum arquivo analisado pelo usuário deve ser enviado para servidor.
@@ -73,6 +77,7 @@ A aplicação deve funcionar diretamente no navegador, sem envio de arquivos par
 - Verificação posterior com `git status --short`: alterações restritas a `README.md`, `AGENTS.md` e `docs/`.
 - Verificação posterior com `git diff --check`: sem erros de whitespace; houve apenas aviso de conversão LF/CRLF do `README.md` no Windows.
 - Leitura de `README.md`, `AGENTS.md`, `docs/PROJECT_STATE.md` e `docs/HANDOFF.md` antes de atualizar a diretriz permanente de simplicidade arquitetural.
+- Leitura de `README.md`, `AGENTS.md`, `docs/PROJECT_STATE.md` e `docs/HANDOFF.md` antes da criação de `CLAUDE.md`.
 
 ## Testes Pendentes
 
