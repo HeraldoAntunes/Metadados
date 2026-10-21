@@ -8,6 +8,8 @@ A proposta é simples: o usuário seleciona ou arrasta um arquivo para a página
 
 Essas informações podem incluir autoria, datas internas, software usado, dados de localização, estrutura do arquivo, assinaturas, hashes e outros rastros digitais.
 
+**Usar no navegador:** https://heraldoantunes.github.io/Metadados/analisador-local-metadados-hash.html (o arquivo analisado continua no seu computador; nada é enviado)
+
 ---
 
 ## Objetivo do projeto
